@@ -168,35 +168,74 @@ window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSub
 window.finalSubmission = async function() {
     timerActive = false; 
     let score = 0;
+    const totalQuestions = activeBank.length;
     
-    // 1. Generate the Summary Table
+    // 1. Calculate Score and Percentage
     let tableRows = activeBank.map((q, i) => {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
-        return `<tr><td style="padding:10px;">${i+1}</td><td style="padding:10px;">${q.q}</td><td style="padding:10px; color:${isCorrect ? 'green' : 'red'}">${userAnswers[i] || 'N/A'}</td><td style="padding:10px;">${q.correct}</td></tr>`;
+        return `
+            <tr>
+                <td style="padding:10px; text-align:center;">${i+1}</td>
+                <td style="padding:10px; text-align:left;">${q.q}</td>
+                <td style="padding:10px; text-align:center; color:${isCorrect ? 'green' : 'red'}">${userAnswers[i] || 'N/A'}</td>
+                <td style="padding:10px; text-align:center;">${q.correct}</td>
+            </tr>`;
     }).join('');
 
-    setView('result');
-    document.getElementById('score-val').innerHTML = `<h3>Final Score: ${score} / ${activeBank.length}</h3>`;
-    document.getElementById('review-panel').innerHTML = `<table style="width:100%; border-collapse:collapse;" border="1">${tableRows}</table>`;
+    const percentage = ((score / totalQuestions) * 100).toFixed(2);
 
-    // 2. Render MathJax for the summary
+    // 2. Set the View
+    setView('result');
+
+    // 3. Create the Score Sticker and Table
+    // We add a styled "sticker" div at the top
+    document.getElementById('score-val').innerHTML = `
+        <div style="display: flex; justify-content: center; margin-bottom: 30px;">
+            <div style="background: linear-gradient(135deg, #0b4a8f, #1e90ff); color: white; padding: 20px 40px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; min-width: 250px;">
+                <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">Examination Result</div>
+                <div style="font-size: 2.5rem; font-weight: bold; margin: 5px 0;">${score} / ${totalQuestions}</div>
+                <div style="font-size: 1.2rem; background: rgba(255,255,255,0.2); display: inline-block; padding: 5px 15px; border-radius: 20px;">
+                    Percentage: ${percentage}%
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('review-panel').innerHTML = `
+        <table style="width:100%; border-collapse:collapse;" border="1">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding:12px; width: 50px;">Q.No</th>
+                    <th style="padding:12px; text-align:left;">Question Description</th>
+                    <th style="padding:12px;">Your Response</th>
+                    <th style="padding:12px;">Correct Answer</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${tableRows}
+            </tbody>
+        </table>`;
+
+    // 4. Render MathJax
     if (window.MathJax) {
-        setTimeout(() => { MathJax.typesetPromise([document.getElementById('review-panel')]); }, 150);
+        setTimeout(() => {
+            MathJax.typesetPromise([document.getElementById('review-panel')]);
+        }, 150);
     }
 
-    // 3. FIX: Mark as finished instead of deleting
+    // 5. Save final status to Supabase (Persistence)
     const sub = document.getElementById('subject-select').value;
     await supabaseClient
         .from('student_progress')
         .upsert({ 
             username: currentUsername, 
             subject: sub,
-            is_finished: true, // This requires the column to exist in Supabase
+            is_finished: true,
             user_answers: [...userAnswers] 
         }, { onConflict: 'username' });
 
-    console.log("Data preserved. is_finished set to true.");
+    console.log(`Test submitted. Final Score: ${score} (${percentage}%)`);
 };
 
 // 7. UI HELPERS
