@@ -26,9 +26,9 @@ const questionBanks = {
 
 // 2. DYNAMIC STATE MANAGEMENT
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
-let currentUserEmail = ""; // Replaces hardcoded string
+let currentUserEmail = ""; // Dynamic identity
 
-// 3. AUTHENTICATION (DYNAMIC)
+// 3. AUTHENTICATION HANDLERS
 window.handleLogin = async function() {
     const email = document.getElementById('login-email').value;
     const pass = document.getElementById('login-pass').value;
@@ -39,7 +39,6 @@ window.handleLogin = async function() {
         alert("Login failed: " + error.message);
     } else {
         currentUserEmail = data.user.email;
-        console.log("Welcome:", currentUserEmail);
         setView('exam');
     }
 };
@@ -54,7 +53,7 @@ window.handleSignup = async function() {
     });
 
     if (error) alert("Signup Error: " + error.message);
-    else alert("Success! Check email for confirmation.");
+    else alert("Success! Check your email for confirmation.");
 };
 
 // 4. CLOUD PERSISTENCE
@@ -76,7 +75,7 @@ async function saveToCloud() {
     if (error) console.error('❌ Cloud Sync Error:', error.message);
 }
 
-// 5. UI & EXAM LOGIC
+// 5. EXAM LOGIC
 window.updateTestNames = function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
@@ -193,6 +192,7 @@ window.finalSubmission = async function() {
     const percentage = ((score / totalQuestions) * 100).toFixed(2);
     setView('result');
 
+    // SCORE STICKER
     document.getElementById('score-val').innerHTML = `
         <div style="display: flex; justify-content: center; margin-bottom: 30px;">
             <div style="background: linear-gradient(135deg, #0b4a8f, #1e90ff); color: white; padding: 20px 40px; border-radius: 50px; text-align: center; min-width: 250px;">
@@ -202,6 +202,7 @@ window.finalSubmission = async function() {
             </div>
         </div>`;
 
+    // SUMMARY TABLE HEADERS
     document.getElementById('review-panel').innerHTML = `
         <table style="width:100%; border-collapse:collapse;" border="1">
             <thead><tr style="background-color: #f2f2f2;"><th>Q.No</th><th>Description</th><th>Response</th><th>Correct</th></tr></thead>
