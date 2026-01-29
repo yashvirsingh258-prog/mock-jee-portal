@@ -18,7 +18,7 @@
     <div id="login-screen">
         <div class="login-card">
             <h2>JEE Portal Login</h2>
-            <input type="text" id="login-email" placeholder="Email (user@example.com)">
+            <input type="text" id="login-email" placeholder="Email (e.g. user@test.com)">
             <input type="password" id="login-pass" placeholder="Password">
             
             <label class="field-label">Subject:</label>
@@ -33,8 +33,8 @@
 
             <button class="btn-pri" style="width:100%; margin-top:20px;" onclick="handleLogin()">Login & Start Test</button>
             
-            <p style="text-align: center; margin-top: 15px; font-size: 0.9rem;">
-                New user? <a href="#" onclick="alert('Please use the handleSignup() function in your console or add a signup UI.')" style="color: #0b4a8f;">Create Account</a>
+            <p style="text-align: center; margin-top: 15px; font-size: 0.85rem; color: #666;">
+                Need an account? Use <code>handleSignup()</code> in console or contact admin.
             </p>
         </div>
     </div>
@@ -49,7 +49,7 @@
             <div id="question-area" class="tex2jax_process"></div>
             
             <div class="nav-bar">
-                <button class="btn-sec" onclick="currentIndex > 0 ? (currentIndex--, loadQuestion()) : null">Previous</button>
+                <button class="btn-sec" onclick="prevQuestion()">Previous</button>
                 <button class="btn-rev" onclick="markForReview()">Mark for Review</button>
                 <button class="btn-clear" onclick="clearResponse()">Clear Response</button>
                 <button class="btn-pri" id="next-btn" onclick="saveAndNext()">Save & Next</button>
@@ -87,13 +87,6 @@
             <div id="review-panel"></div>
             <hr>
             <button class="btn-pri" onclick="location.reload()">Back to Login</button>
-        </div>
-    </div>
-
-    <div id="general-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="document.getElementById('general-modal').style.display='none'">&times;</span>
-            <div id="modal-body" class="tex2jax_process"></div>
         </div>
     </div>
 
