@@ -271,3 +271,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const sub = document.getElementById('subject-select');
     if(sub) sub.addEventListener('change', updateTestNames);
 });
+
+async function saveToCloud() {
+    const sub = document.getElementById('subject-select').value;
+    const { error } = await supabaseClient
+        .from('student_progress')
+        .upsert({ 
+            username: currentUsername,
+            subject: sub,
+            current_index: currentIndex,
+            user_answers: [...userAnswers], // Spread to avoid reference issues
+            confirmed_answered: [...confirmedAnswered],
+            marked_for_review: [...markedForReview],
+            time_left: timeLeft
+        }, { onConflict: 'username' }); // <--- Ensure this matches your DB unique column
+
+    if (error) {
+        console.error('Cloud Save Error:', error.message, error.details);
+    }
+}
