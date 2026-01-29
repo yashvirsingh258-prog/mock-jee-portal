@@ -226,13 +226,11 @@ async function saveToCloud() {
             confirmed_answered: confirmedAnswered,
             marked_for_review: markedForReview,
             time_left: timeLeft
-        }, { onConflict: 'username' });
+        }, { onConflict: 'username' }); // This is required for upsert to work
 
     if (error) {
-        // This will tell you if it's a permission (RLS) or data type error
-        console.error('DATABASE ERROR:', error.message);
-        console.error('ERROR DETAILS:', error.details);
+        console.error('Cloud Save Error:', error.message, error.details);
     } else {
-        console.log('Successfully saved to cloud:', data);
+        console.log('Progress saved successfully');
     }
 }
