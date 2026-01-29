@@ -26,17 +26,17 @@ const questionBanks = {
 
 // 2. DYNAMIC STATE MANAGEMENT
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
-let currentUserEmail = ""; // Dynamic identity
+let currentUserEmail = ""; 
 
-// 3. AUTHENTICATION HANDLERS
+// 3. AUTHENTICATION HANDLERS (FIXED TO PREVENT EMPTY LOGIN)
 window.handleLogin = async function() {
     const email = document.getElementById('login-email').value.trim();
     const pass = document.getElementById('login-pass').value.trim();
 
-    // Prevent empty login attempts
+    // Guard Clause: Stops execution if inputs are empty
     if (!email || !pass) {
         alert("Please enter both email and password.");
-        return;
+        return; 
     }
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ 
@@ -47,7 +47,7 @@ window.handleLogin = async function() {
     if (error) {
         alert("Login failed: " + error.message);
     } else if (data.user) {
-        // Only proceed if we have a valid user object
+        // Only set the user and change view if authentication actually succeeded
         currentUserEmail = data.user.email;
         console.log("Welcome:", currentUserEmail);
         setView('exam');
@@ -59,7 +59,6 @@ window.handleSignup = async function() {
     const pass = document.getElementById('signup-pass').value.trim();
     const name = document.getElementById('signup-name').value.trim();
 
-    // Prevent empty signup attempts
     if (!email || !pass || !name) {
         alert("All fields are required for registration.");
         return;
@@ -74,7 +73,7 @@ window.handleSignup = async function() {
     if (error) {
         alert("Signup Error: " + error.message);
     } else {
-        alert("Registration successful! Please check your email to confirm your account before logging in.");
+        alert("Registration successful! Please confirm your email before logging in.");
     }
 };
 
@@ -214,7 +213,6 @@ window.finalSubmission = async function() {
     const percentage = ((score / totalQuestions) * 100).toFixed(2);
     setView('result');
 
-    // SCORE STICKER
     document.getElementById('score-val').innerHTML = `
         <div style="display: flex; justify-content: center; margin-bottom: 30px;">
             <div style="background: linear-gradient(135deg, #0b4a8f, #1e90ff); color: white; padding: 20px 40px; border-radius: 50px; text-align: center; min-width: 250px;">
@@ -224,7 +222,6 @@ window.finalSubmission = async function() {
             </div>
         </div>`;
 
-    // SUMMARY TABLE HEADERS
     document.getElementById('review-panel').innerHTML = `
         <table style="width:100%; border-collapse:collapse;" border="1">
             <thead><tr style="background-color: #f2f2f2;"><th>Q.No</th><th>Description</th><th>Response</th><th>Correct</th></tr></thead>
