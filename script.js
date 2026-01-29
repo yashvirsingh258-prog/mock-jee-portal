@@ -143,26 +143,71 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
+// UPDATED SUMMARY SUBMISSION WITH MATH RENDERING
 window.finalSubmission = async function() {
     timerActive = false; 
-    let score = 0;
     
-    // 1. Build the table rows FIRST
+    // 1. Calculate the score and build rows FIRST
+    let score = 0;
     let tableRows = activeBank.map((q, i) => {
-        const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
-        if (isCorrect) score++;
+        const userAns = (userAnswers[i] || "").toString().trim();
+        const correctAns = q.correct.toString().trim();
+        const isCorrect = userAns === correctAns;
         
-        // Ensure LaTeX questions and solutions are included in the summary
+        if (isCorrect) score++;
+
         return `
             <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 10px; text-align: center;">${i+1}</td>
-                <td style="padding: 10px; text-align: left;">${q.q}</td>
-                <td style="padding: 10px; text-align: center; color: ${isCorrect ? '#2d8c3c' : '#d93025'}; font-weight: bold;">
+                <td style="padding: 12px; font-weight: bold; text-align: center;">${i+1}</td>
+                <td style="padding: 12px; text-align: left;">${q.q}</td>
+                <td style="padding: 12px; color: ${isCorrect ? '#2d8c3c' : '#d93025'}; font-weight: bold; text-align: center;">
                     ${userAnswers[i] || 'N/A'}
                 </td>
-                <td style="padding: 10px; text-align: center; font-weight: bold;">${q.correct}</td>
+                <td style="padding: 12px; font-weight: bold; text-align: center;">${q.correct}</td>
+                <td style="padding: 12px; text-align: center;">
+                    <a href="javascript:void(0)" onclick="openSolutionTab(${i})" style="color: #0b4a8f; text-decoration: underline; font-weight: 500;">View Solution</a>
+                </td>
             </tr>`;
     }).join('');
+
+    // 2. Clear cloud progress
+    await supabaseClient.from('student_progress').delete().eq('username', currentUsername);
+
+    // 3. Switch to the Result View
+    setView('result');
+
+    // 4. Update the UI Content
+    document.getElementById('score-val').innerHTML = `
+        <div style="background: #0b4a8f; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+            <h2 style="margin:0;">Final Score: ${((score/activeBank.length)*100).toFixed(1)}%</h2>
+            <p style="margin: 5px 0 0 0;">Correct Items: ${score} | Total Items: ${activeBank.length}</p>
+        </div>`;
+
+    document.getElementById('review-panel').innerHTML = `
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #0b4a8f;">
+                        <th style="padding: 12px;">Q#</th>
+                        <th style="padding: 12px; text-align: left;">Question Content</th>
+                        <th style="padding: 12px;">Your Selection</th>
+                        <th style="padding: 12px;">Answer Key</th>
+                        <th style="padding: 12px;">Review</th>
+                    </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+        </div>`;
+
+    // 5. CRITICAL FIX: Re-render math symbols
+    // The timeout ensures the DOM is fully painted before MathJax scans it.
+    setTimeout(() => {
+        if (window.MathJax && window.MathJax.typesetPromise) {
+            console.log("Re-rendering LaTeX for Summary Table...");
+            window.MathJax.typesetPromise([document.getElementById('review-panel')]);
+        }
+    }, 150);
+};
 
     // 2. Switch to Result View
     setView('result');
