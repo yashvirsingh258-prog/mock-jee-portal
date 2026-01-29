@@ -28,12 +28,12 @@ const questionBanks = {
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. AUTHENTICATION HANDLERS (FIXED TO PREVENT EMPTY LOGIN)
+// 3. AUTHENTICATION HANDLERS (FIXED)
 window.handleLogin = async function() {
     const email = document.getElementById('login-email').value.trim();
     const pass = document.getElementById('login-pass').value.trim();
 
-    // Guard Clause: Stops execution if inputs are empty
+    // 1. Guard Clause: Stop execution if inputs are empty
     if (!email || !pass) {
         alert("Please enter both email and password.");
         return; 
@@ -47,7 +47,7 @@ window.handleLogin = async function() {
     if (error) {
         alert("Login failed: " + error.message);
     } else if (data.user) {
-        // Only set the user and change view if authentication actually succeeded
+        // 2. Gatekeeper: Only change view on verified success
         currentUserEmail = data.user.email;
         console.log("Welcome:", currentUserEmail);
         setView('exam');
@@ -73,7 +73,7 @@ window.handleSignup = async function() {
     if (error) {
         alert("Signup Error: " + error.message);
     } else {
-        alert("Registration successful! Please confirm your email before logging in.");
+        alert("Registration successful! Check your email to confirm your account.");
     }
 };
 
@@ -213,6 +213,7 @@ window.finalSubmission = async function() {
     const percentage = ((score / totalQuestions) * 100).toFixed(2);
     setView('result');
 
+    // PRESERVED SCORE STICKER
     document.getElementById('score-val').innerHTML = `
         <div style="display: flex; justify-content: center; margin-bottom: 30px;">
             <div style="background: linear-gradient(135deg, #0b4a8f, #1e90ff); color: white; padding: 20px 40px; border-radius: 50px; text-align: center; min-width: 250px;">
