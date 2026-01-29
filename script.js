@@ -171,32 +171,75 @@ window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSub
 window.finalSubmission = async function() {
     timerActive = false; 
     let score = 0;
+    const totalQuestions = activeBank.length;
+    
+    // 1. Calculate Score and build modern table rows
     let tableRows = activeBank.map((q, i) => {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
-        return `<tr><td>${i+1}</td><td>${q.q}</td><td style="color:${isCorrect ? 'green' : 'red'}">${userAnswers[i] || 'N/A'}</td><td>${q.correct}</td></tr>`;
+        return `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding:15px; text-align:center; font-weight:bold; color:#555;">${i+1}</td>
+                <td style="padding:15px; text-align:left; color:#333;">${q.q}</td>
+                <td style="padding:15px; text-align:center; font-weight:bold; color:${isCorrect ? '#27ae60' : '#e74c3c'}">
+                    ${userAnswers[i] || '<span style="color:#aaa;">N/A</span>'}
+                </td>
+                <td style="padding:15px; text-align:center; font-weight:bold; color:#0b4a8f;">${q.correct}</td>
+            </tr>`;
     }).join('');
 
-    setView('result');
-    document.getElementById('score-val').innerHTML = `<h2 style="text-align:center;">Score: ${score} / ${activeBank.length}</h2>`;
-    document.getElementById('review-panel').innerHTML = `<table style="width:100%; border-collapse:collapse;" border="1"><thead><tr><th>Q.No</th><th>Question</th><th>Response</th><th>Correct</th></tr></thead><tbody>${tableRows}</tbody></table>`;
-    if (window.MathJax) MathJax.typesetPromise();
-    
-    await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, is_finished: true }, { onConflict: 'username' });
-};
+    const percentage = ((score / totalQuestions) * 100).toFixed(2);
 
-function renderPalette() {
-    document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `<div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center;">${i+1}</div>`).join('');
-}
-window.jumpTo = function(i) { currentIndex = i; loadQuestion(); };
-function updatePaletteUI() {
-    activeBank.forEach((_, i) => {
-        const dot = document.getElementById(`dot-${i}`);
-        if (!dot) return;
-        dot.style.background = markedForReview[i] ? "#8e44ad" : (confirmedAnswered[i] ? "#2d8c3c" : "#fff");
-        dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333";
-    });
-}
+    // 2. Switch to result view
+    setView('result');
+
+    // 3. Render the Modern Score Sticker
+    document.getElementById('score-val').innerHTML = `
+        <div style="display: flex; justify-content: center; margin-bottom: 40px;">
+            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e90ff 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(11, 74, 143, 0.3); text-align: center; min-width: 320px; transition: transform 0.3s ease;">
+                <div style="font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">Score Report</div>
+                <div style="font-size: 3.5rem; font-weight: 800; margin: 0; line-height: 1;">${score} <span style="font-size: 1.5rem; opacity: 0.7;">/ ${totalQuestions}</span></div>
+                <div style="margin-top: 20px; font-size: 1.4rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 8px 25px; border-radius: 50px; font-weight: 500;">
+                    ${percentage}% Accuracy
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 4. Render the Review Table with clean styling
+    document.getElementById('review-panel').innerHTML = `
+        <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <table style="width:100%; border-collapse:collapse; font-family: sans-serif;">
+                <thead>
+                    <tr style="background-color: #f8f9fa; border-bottom: 2px solid #eee;">
+                        <th style="padding:15px; width: 60px; color:#666;">Q.No</th>
+                        <th style="padding:15px; text-align:left; color:#666;">Question</th>
+                        <th style="padding:15px; color:#666;">Your Response</th>
+                        <th style="padding:15px; color:#666;">Correct Answer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+        </div>`;
+
+    // 5. Re-render MathJax for the new content
+    if (window.MathJax) {
+        setTimeout(() => {
+            MathJax.typesetPromise([document.getElementById('review-panel')]);
+        }, 200);
+    }
+
+    // 6. Final Progress Sync
+    const sub = document.getElementById('subject-select').value;
+    await supabaseClient.from('student_progress').upsert({ 
+        username: currentUserEmail, 
+        subject: sub,
+        is_finished: true,
+        user_answers: [...userAnswers] 
+    }, { onConflict: 'username' });
+};
 
 // 6. INITIALIZE
 document.addEventListener('DOMContentLoaded', () => { 
