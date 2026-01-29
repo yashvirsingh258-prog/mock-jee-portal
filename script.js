@@ -3,7 +3,7 @@ const supabaseUrl = 'https://ijxsnunkfhudwnkrwmzk.supabase.co';
 const supabaseKey = 'sb_publishable_V-KT1zvp-73dqHHvmx3fNA_iHw53TCl';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-// 1. DATA (15 MATHEMATICS QUESTIONS)
+// 1. DATA (Keep your 15 questions exactly as they are)
 const questionBanks = {
     mathematics: [
         { type: "mcq", q: "Let $A = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 1 \\end{bmatrix}$. If $A^n = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & n \\\\ 0 & 0 & 1 \\end{bmatrix}$, then $|adj(A^{10})|$ is:", options: ["1", "10", "100", "0"], correct: "1", solution: "Since $|A|=1$, then $|A^{10}|=1$. The property of adjoint states $|adj(M)| = |M|^{n-1}$. Here $n=3$ (order of matrix), so $|adj(A^{10})| = |A^{10}|^{3-1} = 1^2 = 1$." },
@@ -28,7 +28,7 @@ const questionBanks = {
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUsername = "yagya_student"; 
 
-// 3. UPDATED CLOUD PERSISTENCE
+// 3. PERSISTENCE
 async function saveToCloud() {
     const sub = document.getElementById('subject-select').value;
     const { error } = await supabaseClient
@@ -37,17 +37,24 @@ async function saveToCloud() {
             username: currentUsername,
             subject: sub,
             current_index: currentIndex,
-            user_answers: [...userAnswers], // Spread array to ensure clean JSON formatting
+            user_answers: [...userAnswers],
             confirmed_answered: [...confirmedAnswered],
             marked_for_review: [...markedForReview],
             time_left: timeLeft
         }, { onConflict: 'username' });
 
     if (error) console.error('Cloud Save Error:', error.message);
-    else console.log('Progress synced to cloud');
 }
 
-// 4. NAVIGATION & UI
+// 4. TEST NAME POPULATION (FIXED)
+window.updateTestNames = function() {
+    const sub = document.getElementById('subject-select').value;
+    const testSelect = document.getElementById('test-name-select');
+    if (testSelect) {
+        testSelect.innerHTML = `<option value="test1">${sub.toUpperCase()} Mock Test 1</option>`;
+    }
+};
+
 window.setView = function(view) {
     document.getElementById('login-screen').style.display = (view === 'login') ? 'flex' : 'none';
     document.getElementById('exam-header').style.display = (view === 'exam') ? 'flex' : 'none';
@@ -55,7 +62,7 @@ window.setView = function(view) {
     document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
 };
 
-// 5. START EXAM (Fixed resume logic)
+// 5. TEST CONTROLS
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     activeBank = questionBanks[sub] || questionBanks['mathematics'];
@@ -65,7 +72,7 @@ window.startExam = async function() {
         .select('*')
         .eq('username', currentUsername)
         .eq('subject', sub)
-        .maybeSingle(); // Changed from .single() to prevent errors on new users
+        .maybeSingle();
 
     if (data && confirm("Resume your previous session from cloud?")) {
         currentIndex = data.current_index;
@@ -93,43 +100,36 @@ window.loadQuestion = function() {
     const area = document.getElementById('question-area');
     
     area.innerHTML = `
-        <div style="padding: 0 50px;">
-            <div class="question-header" style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 20px;">
-                <span style="background: #0b4a8f; color: white; padding: 4px 12px; border-radius: 4px; font-weight: bold;">Question ${currentIndex + 1}</span>
-            </div>
-            <div class="question-text" style="font-size: 1.2rem; margin-bottom: 25px;">${data.q}</div>
-            <div class="options-container" style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="padding: 20px 50px;">
+            <div style="margin-bottom: 20px;"><span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">Question ${currentIndex + 1}</span></div>
+            <div style="font-size: 1.2rem; margin-bottom: 25px;">${data.q}</div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
                 ${data.type === 'mcq' ? 
-                    data.options.map((opt) => {
-                        const isSelected = userAnswers[currentIndex] === opt;
-                        return `
-                        <label style="padding: 15px; border-radius: 8px; border: 1px solid ${isSelected ? '#8e44ad' : '#ddd'}; background: ${isSelected ? '#f9f0ff' : '#fff'}; cursor: pointer;">
-                            <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${isSelected ? 'checked' : ''}>
-                            ${opt}
-                        </label>`;
-                    }).join('') :
-                    `<input type="text" class="num-input" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px;" oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`
+                    data.options.map(opt => `
+                        <label style="padding: 15px; border: 1px solid ${userAnswers[currentIndex] === opt ? '#8e44ad' : '#ddd'}; background: ${userAnswers[currentIndex] === opt ? '#f9f0ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
+                            <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> ${opt}
+                        </label>`).join('') :
+                    `<input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`
                 }
             </div>
         </div>
     `;
-
     updateStats();
     updatePaletteUI();
     if (window.MathJax) MathJax.typesetPromise();
 };
 
-// 6. ACTIONS
 window.saveAnswer = function(val) { userAnswers[currentIndex] = val; saveToCloud(); };
 window.saveAndNext = function() {
-    if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; }
-    if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
+    if (userAnswers[currentIndex] !== "") confirmedAnswered[currentIndex] = true;
+    if (currentIndex < activeBank.length - 1) currentIndex++;
+    loadQuestion();
     saveToCloud();
 };
 
 window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
 
-// 7. TIMER
+// 6. TIMER & SUBMISSION
 function startTimer() {
     timerActive = true;
     const interval = setInterval(() => {
@@ -141,40 +141,29 @@ function startTimer() {
     }, 1000);
 }
 
-// 8. FINAL SUBMISSION (FIXED ORDER)
+window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
+
 window.finalSubmission = async function() {
     timerActive = false; 
-    setView('result');
     let score = 0;
     
-    // Build the table rows FIRST
     let tableRows = activeBank.map((q, i) => {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
-        return `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 12px;">${i+1}</td>
-                <td style="padding: 12px; text-align: left;">${q.q}</td>
-                <td style="padding: 12px; color: ${isCorrect ? '#2d8c3c' : '#d93025'}">${userAnswers[i] || 'N/A'}</td>
-                <td style="padding: 12px;">${q.correct}</td>
-            </tr>`;
+        return `<tr><td style="padding:10px;">${i+1}</td><td style="padding:10px;">${q.q}</td><td style="padding:10px; color:${isCorrect ? 'green' : 'red'}">${userAnswers[i] || 'N/A'}</td><td style="padding:10px;">${q.correct}</td></tr>`;
     }).join('');
 
-    document.getElementById('score-val').innerHTML = `<h2>Score: ${score} / ${activeBank.length}</h2>`;
-    document.getElementById('review-panel').innerHTML = `
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead><tr style="background:#f8f9fa;"><th>Q#</th><th>Question</th><th>Your Ans</th><th>Correct</th></tr></thead>
-            <tbody>${tableRows}</tbody>
-        </table>`;
+    setView('result');
+    document.getElementById('score-val').innerHTML = `<h3>Final Score: ${score} / ${activeBank.length}</h3>`;
+    document.getElementById('review-panel').innerHTML = `<table style="width:100%; border-collapse:collapse;" border="1">${tableRows}</table>`;
 
-    // DELETE from cloud only AFTER table is generated
     await supabaseClient.from('student_progress').delete().eq('username', currentUsername);
 };
 
-// 9. PALETTE
+// 7. UI HELPERS
 function renderPalette() {
     document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
-        <div id="dot-${i}" onclick="jumpTo(${i})" style="width: 30px; height: 30px; border: 1px solid #ccc; display: inline-block; margin: 2px; cursor: pointer;">${i + 1}</div>
+        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:30px; height:30px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:30px;">${i+1}</div>
     `).join('');
 }
 
@@ -194,9 +183,9 @@ function updateStats() {
     document.getElementById('count-not-ans').innerText = activeBank.length - ans;
 }
 
+// 8. INITIALIZE (Populate test names on load)
 document.addEventListener('DOMContentLoaded', () => { 
+    updateTestNames(); 
     const sub = document.getElementById('subject-select');
-    if(sub) sub.addEventListener('change', () => {
-        document.getElementById('test-name-select').innerHTML = `<option>${sub.value.toUpperCase()} Test 1</option>`;
-    });
+    if(sub) sub.addEventListener('change', updateTestNames);
 });
