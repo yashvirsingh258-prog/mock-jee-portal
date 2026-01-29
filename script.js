@@ -43,7 +43,7 @@ async function saveToCloud() {
             time_left: timeLeft
         }, { onConflict: 'username' });
 
-    if (error) console.error('Cloud Save Error:', error);
+    if (error) console.error('Cloud Save Error:', error.message);
 }
 
 // 3. UI SYNC & NAVIGATION
@@ -209,7 +209,7 @@ function startTimer() {
         if (!timerActive) { clearInterval(interval); return; }
         timeLeft--;
         
-        // Save to cloud every 30 seconds to minimize API calls but ensure safety
+        // Periodic cloud save every 30 seconds
         if (timeLeft % 30 === 0) saveToCloud();
 
         let m = Math.floor(timeLeft / 60);
