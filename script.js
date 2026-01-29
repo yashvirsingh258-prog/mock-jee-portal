@@ -3,11 +3,11 @@ const supabaseUrl = 'https://ijxsnunkfhudwnkrwmzk.supabase.co';
 const supabaseKey = 'sb_publishable_V-KT1zvp-73dqHHvmx3fNA_iHw53TCl';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-// 1. DATA (Keep your 15 questions exactly as they are)
+// 1. DATA (15 MATHEMATICS QUESTIONS)
 const questionBanks = {
     mathematics: [
         { type: "mcq", q: "Let $A = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 1 \\end{bmatrix}$. If $A^n = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & n \\\\ 0 & 0 & 1 \\end{bmatrix}$, then $|adj(A^{10})|$ is:", options: ["1", "10", "100", "0"], correct: "1", solution: "Since $|A|=1$, then $|A^{10}|=1$. The property of adjoint states $|adj(M)| = |M|^{n-1}$. Here $n=3$ (order of matrix), so $|adj(A^{10})| = |A^{10}|^{3-1} = 1^2 = 1$." },
-        { type: "mcq", q: "If $S_n = 3n^2 + 4n$, then the $n^{th}$ term $a_n$ is:", options: ["$6n + 1$", "$6n - 1$", "$3n + 1$", "$3n - 1$"], correct: "$6n + 1$", solution: "$a_n = S_n - S_{n-1}$. <br> $S_n = 3n^2 + 4n$ <br> $S_{n-1} = 3(n-1)^2 + 4(n-1) = 3(n^2 - 2n + 1) + 4n - 4 = 3n^2 - 6n + 3 + 4n - 4 = 3n^2 - 2n - 1$. <br> $a_n = (3n^2 + 4n) - (3n^2 - 2n - 1) = 6n + 1$." },
+        { type: "mcq", q: "If $S_n = 3n^2 + 4n$, then the $n^{th}$ term $a_n$ is:", options: ["$6n + 1$", "$6n - 1$", "$3n + 1$", "$3n - 1$"], correct: "$6n + 1$", solution: "$a_n = S_n - S_{n-1}$. <br> $S_n = 3n^2 + 4n$ <br> $S_{n-1} = 3(n-1)^2 + 4(n-1) = 3n^2 - 2n - 1$. <br> $a_n = (3n^2 + 4n) - (3n^2 - 2n - 1) = 6n + 1$." },
         { type: "mcq", q: "The value of $\\int_{-1}^{1} \\frac{x^4}{1 + e^{x^7}} dx$ is:", options: ["0", "1/5", "2/5", "4/5"], correct: "1/5", solution: "Using the property $\\int_a^b f(x)dx = \\int_a^b f(a+b-x)dx$: <br> $I = \\int_{-1}^{1} \\frac{x^4}{1 + e^{x^7}} dx$. By applying the property and adding the two forms of the integral, we get $2I = \\int_{-1}^{1} x^4 dx = [x^5/5]_{-1}^1 = 2/5$. Thus, $I = 1/5$." },
         { type: "mcq", q: "The number of solutions of $\\sin^{-1} x = 2\\tan^{-1} x$ is:", options: ["1", "2", "3", "0"], correct: "3", solution: "The equation simplifies to $\\sin(\\theta/2) [1/\\cos(\\theta/2) - 2\\cos(\\theta/2)] = 0$. This yields $x=0$ from the first term and $x=\\pm 1$ from the second. Total 3 solutions." },
         { type: "mcq", q: "Min area of $\\triangle OAB$ for tangent to $\\frac{x^2}{27} + \\frac{y^2}{3} = 1$ is:", options: ["9", "18", "27", "9\\sqrt{3}"], correct: "9", solution: "Area $\\Delta = \\frac{ab}{\\sin 2\\theta}$. Minimum area occurs when $\\sin 2\\theta = 1$, giving Area = $ab = \\sqrt{27} \\cdot \\sqrt{3} = 9$." },
@@ -28,7 +28,7 @@ const questionBanks = {
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUsername = "yagya_student"; 
 
-// 3. PERSISTENCE
+// 3. CLOUD PERSISTENCE
 async function saveToCloud() {
     const sub = document.getElementById('subject-select').value;
     const { error } = await supabaseClient
@@ -46,12 +46,13 @@ async function saveToCloud() {
     if (error) console.error('Cloud Save Error:', error.message);
 }
 
-// 4. TEST NAME POPULATION (FIXED)
+// 4. TEST NAME POPULATION (RESTORED & FIXED)
 window.updateTestNames = function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
     if (testSelect) {
         testSelect.innerHTML = `<option value="test1">${sub.toUpperCase()} Mock Test 1</option>`;
+        console.log("Test names updated for:", sub);
     }
 };
 
@@ -62,11 +63,12 @@ window.setView = function(view) {
     document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
 };
 
-// 5. TEST CONTROLS
+// 5. EXAM LOGIC
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     activeBank = questionBanks[sub] || questionBanks['mathematics'];
     
+    // Check for existing cloud progress
     const { data } = await supabaseClient
         .from('student_progress')
         .select('*')
@@ -74,7 +76,7 @@ window.startExam = async function() {
         .eq('subject', sub)
         .maybeSingle();
 
-    if (data && confirm("Resume your previous session from cloud?")) {
+    if (data && confirm("Existing progress found on cloud. Resume exam?")) {
         currentIndex = data.current_index;
         userAnswers = data.user_answers || new Array(activeBank.length).fill("");
         confirmedAnswered = data.confirmed_answered || new Array(activeBank.length).fill(false);
@@ -120,14 +122,27 @@ window.loadQuestion = function() {
 };
 
 window.saveAnswer = function(val) { userAnswers[currentIndex] = val; saveToCloud(); };
+
 window.saveAndNext = function() {
-    if (userAnswers[currentIndex] !== "") confirmedAnswered[currentIndex] = true;
-    if (currentIndex < activeBank.length - 1) currentIndex++;
-    loadQuestion();
+    if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; }
+    if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
     saveToCloud();
 };
 
-window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
+window.markForReview = function() {
+    markedForReview[currentIndex] = true;
+    if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
+    else { updatePaletteUI(); }
+    saveToCloud();
+};
+
+window.clearResponse = function() {
+    userAnswers[currentIndex] = "";
+    confirmedAnswered[currentIndex] = false;
+    markedForReview[currentIndex] = false;
+    loadQuestion();
+    saveToCloud();
+};
 
 // 6. TIMER & SUBMISSION
 function startTimer() {
@@ -143,118 +158,43 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
-// UPDATED SUMMARY SUBMISSION WITH MATH RENDERING
 window.finalSubmission = async function() {
     timerActive = false; 
-    
-    // 1. Calculate the score and build rows FIRST
     let score = 0;
+    
+    // Generate Summary Table
     let tableRows = activeBank.map((q, i) => {
-        const userAns = (userAnswers[i] || "").toString().trim();
-        const correctAns = q.correct.toString().trim();
-        const isCorrect = userAns === correctAns;
-        
+        const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
-
-        return `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding: 12px; font-weight: bold; text-align: center;">${i+1}</td>
-                <td style="padding: 12px; text-align: left;">${q.q}</td>
-                <td style="padding: 12px; color: ${isCorrect ? '#2d8c3c' : '#d93025'}; font-weight: bold; text-align: center;">
-                    ${userAnswers[i] || 'N/A'}
-                </td>
-                <td style="padding: 12px; font-weight: bold; text-align: center;">${q.correct}</td>
-                <td style="padding: 12px; text-align: center;">
-                    <a href="javascript:void(0)" onclick="openSolutionTab(${i})" style="color: #0b4a8f; text-decoration: underline; font-weight: 500;">View Solution</a>
-                </td>
-            </tr>`;
+        return `<tr><td style="padding:10px;">${i+1}</td><td style="padding:10px;">${q.q}</td><td style="padding:10px; color:${isCorrect ? 'green' : 'red'}">${userAnswers[i] || 'N/A'}</td><td style="padding:10px;">${q.correct}</td></tr>`;
     }).join('');
 
-    // 2. Clear cloud progress
-    await supabaseClient.from('student_progress').delete().eq('username', currentUsername);
-
-    // 3. Switch to the Result View
     setView('result');
+    document.getElementById('score-val').innerHTML = `<h3>Final Score: ${score} / ${activeBank.length}</h3>`;
+    document.getElementById('review-panel').innerHTML = `<table style="width:100%; border-collapse:collapse;" border="1">${tableRows}</table>`;
 
-    // 4. Update the UI Content
-    document.getElementById('score-val').innerHTML = `
-        <div style="background: #0b4a8f; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-            <h2 style="margin:0;">Final Score: ${((score/activeBank.length)*100).toFixed(1)}%</h2>
-            <p style="margin: 5px 0 0 0;">Correct Items: ${score} | Total Items: ${activeBank.length}</p>
-        </div>`;
+    // Wait for DOM and then render Math in summary
+    setTimeout(() => { if (window.MathJax) MathJax.typesetPromise(); }, 200);
 
-    document.getElementById('review-panel').innerHTML = `
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px;">
-                <thead>
-                    <tr style="background: #f8f9fa; border-bottom: 2px solid #0b4a8f;">
-                        <th style="padding: 12px;">Q#</th>
-                        <th style="padding: 12px; text-align: left;">Question Content</th>
-                        <th style="padding: 12px;">Your Selection</th>
-                        <th style="padding: 12px;">Answer Key</th>
-                        <th style="padding: 12px;">Review</th>
-                    </tr>
-                </thead>
-                <tbody>${tableRows}</tbody>
-            </table>
-        </div>`;
-
-    // 5. CRITICAL FIX: Re-render math symbols
-    // The timeout ensures the DOM is fully painted before MathJax scans it.
-    setTimeout(() => {
-        if (window.MathJax && window.MathJax.typesetPromise) {
-            console.log("Re-rendering LaTeX for Summary Table...");
-            window.MathJax.typesetPromise([document.getElementById('review-panel')]);
-        }
-    }, 150);
-};
-
-    // 2. Switch to Result View
-    setView('result');
-
-    // 3. Update the UI with the score and table
-    document.getElementById('score-val').innerHTML = `
-        <div style="background: #0b4a8f; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
-            <h2 style="margin:0;">Final Score: ${score} / ${activeBank.length}</h2>
-            <p style="margin: 5px 0 0 0;">(${((score/activeBank.length)*100).toFixed(1)}%)</p>
-        </div>`;
-        
-    document.getElementById('review-panel').innerHTML = `
-        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;" border="1">
-            <thead>
-                <tr style="background: #f8f9fa;">
-                    <th style="padding: 10px;">Q#</th>
-                    <th style="padding: 10px; text-align: left;">Question Content</th>
-                    <th style="padding: 10px;">Your Answer</th>
-                    <th style="padding: 10px;">Correct Key</th>
-                </tr>
-            </thead>
-            <tbody>${tableRows}</tbody>
-        </table>`;
-
-    // 4. CRITICAL: Trigger MathJax to render the symbols in the new table
-    if (window.MathJax) {
-        console.log("Rendering math symbols in summary...");
-        MathJax.typesetPromise(); 
-    }
-
-    // 5. Cleanup cloud progress
+    // Delete cloud progress after submission
     await supabaseClient.from('student_progress').delete().eq('username', currentUsername);
 };
 
 // 7. UI HELPERS
 function renderPalette() {
     document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
-        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:30px; height:30px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:30px;">${i+1}</div>
+        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px;">${i+1}</div>
     `).join('');
 }
+
+window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
 
 function updatePaletteUI() {
     activeBank.forEach((_, i) => {
         const dot = document.getElementById(`dot-${i}`);
         if (!dot) return;
-        dot.style.background = confirmedAnswered[i] ? "#2d8c3c" : "#fff";
-        dot.style.color = confirmedAnswered[i] ? "#fff" : "#333";
+        dot.style.background = markedForReview[i] ? "#8e44ad" : (confirmedAnswered[i] ? "#2d8c3c" : "#fff");
+        dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333";
         dot.style.border = (i === currentIndex) ? "2px solid #0b4a8f" : "1px solid #ccc";
     });
 }
@@ -265,28 +205,11 @@ function updateStats() {
     document.getElementById('count-not-ans').innerText = activeBank.length - ans;
 }
 
-// 8. INITIALIZE (Populate test names on load)
+// 8. INITIALIZE (Run when page loads)
 document.addEventListener('DOMContentLoaded', () => { 
-    updateTestNames(); 
-    const sub = document.getElementById('subject-select');
-    if(sub) sub.addEventListener('change', updateTestNames);
-});
-
-async function saveToCloud() {
-    const sub = document.getElementById('subject-select').value;
-    const { error } = await supabaseClient
-        .from('student_progress')
-        .upsert({ 
-            username: currentUsername,
-            subject: sub,
-            current_index: currentIndex,
-            user_answers: [...userAnswers], // Spread to avoid reference issues
-            confirmed_answered: [...confirmedAnswered],
-            marked_for_review: [...markedForReview],
-            time_left: timeLeft
-        }, { onConflict: 'username' }); // <--- Ensure this matches your DB unique column
-
-    if (error) {
-        console.error('Cloud Save Error:', error.message, error.details);
+    updateTestNames(); // POPULATE DROPDOWN IMMEDIATELY
+    const subSelect = document.getElementById('subject-select');
+    if(subSelect) {
+        subSelect.addEventListener('change', updateTestNames);
     }
-}
+});
