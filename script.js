@@ -166,21 +166,32 @@ window.finalSubmission = async function() {
     timerActive = false; 
     let score = 0;
     
-    // Generate Summary Table
+    // Ensure we are using the latest local data for the table
     let tableRows = activeBank.map((q, i) => {
-        const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
+        const userAnswer = userAnswers[i] || "N/A"; // Prevents empty cells
+        const isCorrect = userAnswer.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
-        return `<tr><td style="padding:10px;">${i+1}</td><td style="padding:10px;">${q.q}</td><td style="padding:10px; color:${isCorrect ? 'green' : 'red'}">${userAnswers[i] || 'N/A'}</td><td style="padding:10px;">${q.correct}</td></tr>`;
+        
+        return `<tr>
+            <td style="padding:10px;">${i+1}</td>
+            <td style="padding:10px; text-align:left;">${q.q}</td>
+            <td style="padding:10px; color:${isCorrect ? 'green' : 'red'}">${userAnswer}</td>
+            <td style="padding:10px;">${q.correct}</td>
+        </tr>`;
     }).join('');
 
     setView('result');
     document.getElementById('score-val').innerHTML = `<h3>Final Score: ${score} / ${activeBank.length}</h3>`;
     document.getElementById('review-panel').innerHTML = `<table style="width:100%; border-collapse:collapse;" border="1">${tableRows}</table>`;
 
-    // Wait for DOM and then render Math in summary
-    setTimeout(() => { if (window.MathJax) MathJax.typesetPromise(); }, 200);
-
-    // Delete cloud progress after submission
+    // CRITICAL: Re-run MathJax on the new summary content
+    if (window.MathJax) {
+        setTimeout(() => {
+            MathJax.typesetPromise([document.getElementById('review-panel')]);
+        }, 200);
+    }
+    
+    // Deleting from cloud AFTER user sees the result
     await supabaseClient.from('student_progress').delete().eq('username', currentUsername);
 };
 
