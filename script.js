@@ -24,17 +24,46 @@ const questionBanks = {
     ]
 };
 
-// 2. STATE MANAGEMENT
+// 2. DYNAMIC STATE MANAGEMENT
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
-let currentUsername = "yagya_student"; 
+let currentUserEmail = ""; // Replaces hardcoded string
 
-// 3. CLOUD PERSISTENCE
+// 3. AUTHENTICATION (DYNAMIC)
+window.handleLogin = async function() {
+    const email = document.getElementById('login-email').value;
+    const pass = document.getElementById('login-pass').value;
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+
+    if (error) {
+        alert("Login failed: " + error.message);
+    } else {
+        currentUserEmail = data.user.email;
+        console.log("Welcome:", currentUserEmail);
+        setView('exam');
+    }
+};
+
+window.handleSignup = async function() {
+    const email = document.getElementById('signup-email').value;
+    const pass = document.getElementById('signup-pass').value;
+    const name = document.getElementById('signup-name').value;
+
+    const { error } = await supabaseClient.auth.signUp({
+        email, password: pass, options: { data: { full_name: name } }
+    });
+
+    if (error) alert("Signup Error: " + error.message);
+    else alert("Success! Check email for confirmation.");
+};
+
+// 4. CLOUD PERSISTENCE
 async function saveToCloud() {
+    if (!currentUserEmail) return;
     const sub = document.getElementById('subject-select').value;
     
-    // Ensure data is perfectly serialized for PostgreSQL jsonb
     const payload = { 
-        username: currentUsername,
+        username: currentUserEmail,
         subject: sub,
         current_index: currentIndex,
         user_answers: JSON.parse(JSON.stringify(userAnswers)),
@@ -43,24 +72,15 @@ async function saveToCloud() {
         time_left: timeLeft
     };
 
-    const { error } = await supabaseClient
-        .from('student_progress')
-        .upsert(payload, { onConflict: 'username' });
-
-    if (error) {
-        console.error('❌ DATABASE REJECTED DATA:', error.message);
-    } else {
-        console.log('✅ Progress synced to Supabase');
-    }
+    const { error } = await supabaseClient.from('student_progress').upsert(payload, { onConflict: 'username' });
+    if (error) console.error('❌ Cloud Sync Error:', error.message);
 }
 
-// 4. UI SYNC
+// 5. UI & EXAM LOGIC
 window.updateTestNames = function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
-    if (testSelect) {
-        testSelect.innerHTML = `<option value="test1">${sub.toUpperCase()} Mock Test 1</option>`;
-    }
+    if (testSelect) testSelect.innerHTML = `<option value="test1">${sub.toUpperCase()} Mock Test 1</option>`;
 };
 
 window.setView = function(view) {
@@ -70,19 +90,14 @@ window.setView = function(view) {
     document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
 };
 
-// 5. EXAM LOGIC
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     activeBank = questionBanks[sub] || questionBanks['mathematics'];
     
-    const { data } = await supabaseClient
-        .from('student_progress')
-        .select('*')
-        .eq('username', currentUsername)
-        .eq('subject', sub)
-        .maybeSingle();
+    const { data } = await supabaseClient.from('student_progress').select('*')
+        .eq('username', currentUserEmail).eq('subject', sub).maybeSingle();
 
-    if (data && confirm("Existing progress found on cloud. Resume exam?")) {
+    if (data && confirm("Resume existing progress?")) {
         currentIndex = data.current_index;
         userAnswers = data.user_answers || new Array(activeBank.length).fill("");
         confirmedAnswered = data.confirmed_answered || new Array(activeBank.length).fill(false);
@@ -164,85 +179,45 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
-// UPDATED: NO DELETE CALL, INCLUDES MATH RENDERING
 window.finalSubmission = async function() {
     timerActive = false; 
     let score = 0;
     const totalQuestions = activeBank.length;
     
-    // 1. Calculate Score and Percentage
     let tableRows = activeBank.map((q, i) => {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
-        return `
-            <tr>
-                <td style="padding:10px; text-align:center;">${i+1}</td>
-                <td style="padding:10px; text-align:left;">${q.q}</td>
-                <td style="padding:10px; text-align:center; color:${isCorrect ? 'green' : 'red'}">${userAnswers[i] || 'N/A'}</td>
-                <td style="padding:10px; text-align:center;">${q.correct}</td>
-            </tr>`;
+        return `<tr><td style="padding:10px; text-align:center;">${i+1}</td><td style="padding:10px; text-align:left;">${q.q}</td><td style="padding:10px; text-align:center; color:${isCorrect ? 'green' : 'red'}">${userAnswers[i] || 'N/A'}</td><td style="padding:10px; text-align:center;">${q.correct}</td></tr>`;
     }).join('');
 
     const percentage = ((score / totalQuestions) * 100).toFixed(2);
-
-    // 2. Set the View
     setView('result');
 
-    // 3. Create the Score Sticker and Table
-    // We add a styled "sticker" div at the top
     document.getElementById('score-val').innerHTML = `
         <div style="display: flex; justify-content: center; margin-bottom: 30px;">
-            <div style="background: linear-gradient(135deg, #0b4a8f, #1e90ff); color: white; padding: 20px 40px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center; min-width: 250px;">
-                <div style="font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9;">Examination Result</div>
+            <div style="background: linear-gradient(135deg, #0b4a8f, #1e90ff); color: white; padding: 20px 40px; border-radius: 50px; text-align: center; min-width: 250px;">
+                <div style="font-size: 0.9rem; text-transform: uppercase;">Examination Result</div>
                 <div style="font-size: 2.5rem; font-weight: bold; margin: 5px 0;">${score} / ${totalQuestions}</div>
-                <div style="font-size: 1.2rem; background: rgba(255,255,255,0.2); display: inline-block; padding: 5px 15px; border-radius: 20px;">
-                    Percentage: ${percentage}%
-                </div>
+                <div style="font-size: 1.2rem; background: rgba(255,255,255,0.2); display: inline-block; padding: 5px 15px; border-radius: 20px;">Percentage: ${percentage}%</div>
             </div>
-        </div>
-    `;
+        </div>`;
 
     document.getElementById('review-panel').innerHTML = `
         <table style="width:100%; border-collapse:collapse;" border="1">
-            <thead>
-                <tr style="background-color: #f2f2f2;">
-                    <th style="padding:12px; width: 50px;">Q.No</th>
-                    <th style="padding:12px; text-align:left;">Question Description</th>
-                    <th style="padding:12px;">Your Response</th>
-                    <th style="padding:12px;">Correct Answer</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${tableRows}
-            </tbody>
+            <thead><tr style="background-color: #f2f2f2;"><th>Q.No</th><th>Description</th><th>Response</th><th>Correct</th></tr></thead>
+            <tbody>${tableRows}</tbody>
         </table>`;
 
-    // 4. Render MathJax
-    if (window.MathJax) {
-        setTimeout(() => {
-            MathJax.typesetPromise([document.getElementById('review-panel')]);
-        }, 150);
-    }
+    if (window.MathJax) setTimeout(() => { MathJax.typesetPromise([document.getElementById('review-panel')]); }, 150);
 
-    // 5. Save final status to Supabase (Persistence)
     const sub = document.getElementById('subject-select').value;
-    await supabaseClient
-        .from('student_progress')
-        .upsert({ 
-            username: currentUsername, 
-            subject: sub,
-            is_finished: true,
-            user_answers: [...userAnswers] 
-        }, { onConflict: 'username' });
-
-    console.log(`Test submitted. Final Score: ${score} (${percentage}%)`);
+    await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, subject: sub, is_finished: true, user_answers: [...userAnswers] }, { onConflict: 'username' });
 };
 
 // 7. UI HELPERS
 function renderPalette() {
     document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
-        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px;">${i+1}</div>
-    `).join('');
+        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px;">${i+1}</div>`).join('');
 }
 
 window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
@@ -263,11 +238,8 @@ function updateStats() {
     document.getElementById('count-not-ans').innerText = activeBank.length - ans;
 }
 
-// 8. INITIALIZE
 document.addEventListener('DOMContentLoaded', () => { 
     updateTestNames(); 
     const subSelect = document.getElementById('subject-select');
-    if(subSelect) {
-        subSelect.addEventListener('change', updateTestNames);
-    }
+    if(subSelect) subSelect.addEventListener('change', updateTestNames);
 });
