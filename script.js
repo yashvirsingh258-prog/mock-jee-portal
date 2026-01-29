@@ -147,16 +147,53 @@ window.finalSubmission = async function() {
     timerActive = false; 
     let score = 0;
     
+    // 1. Build the table rows FIRST
     let tableRows = activeBank.map((q, i) => {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
-        return `<tr><td style="padding:10px;">${i+1}</td><td style="padding:10px;">${q.q}</td><td style="padding:10px; color:${isCorrect ? 'green' : 'red'}">${userAnswers[i] || 'N/A'}</td><td style="padding:10px;">${q.correct}</td></tr>`;
+        
+        // Ensure LaTeX questions and solutions are included in the summary
+        return `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px; text-align: center;">${i+1}</td>
+                <td style="padding: 10px; text-align: left;">${q.q}</td>
+                <td style="padding: 10px; text-align: center; color: ${isCorrect ? '#2d8c3c' : '#d93025'}; font-weight: bold;">
+                    ${userAnswers[i] || 'N/A'}
+                </td>
+                <td style="padding: 10px; text-align: center; font-weight: bold;">${q.correct}</td>
+            </tr>`;
     }).join('');
 
+    // 2. Switch to Result View
     setView('result');
-    document.getElementById('score-val').innerHTML = `<h3>Final Score: ${score} / ${activeBank.length}</h3>`;
-    document.getElementById('review-panel').innerHTML = `<table style="width:100%; border-collapse:collapse;" border="1">${tableRows}</table>`;
 
+    // 3. Update the UI with the score and table
+    document.getElementById('score-val').innerHTML = `
+        <div style="background: #0b4a8f; color: white; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
+            <h2 style="margin:0;">Final Score: ${score} / ${activeBank.length}</h2>
+            <p style="margin: 5px 0 0 0;">(${((score/activeBank.length)*100).toFixed(1)}%)</p>
+        </div>`;
+        
+    document.getElementById('review-panel').innerHTML = `
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;" border="1">
+            <thead>
+                <tr style="background: #f8f9fa;">
+                    <th style="padding: 10px;">Q#</th>
+                    <th style="padding: 10px; text-align: left;">Question Content</th>
+                    <th style="padding: 10px;">Your Answer</th>
+                    <th style="padding: 10px;">Correct Key</th>
+                </tr>
+            </thead>
+            <tbody>${tableRows}</tbody>
+        </table>`;
+
+    // 4. CRITICAL: Trigger MathJax to render the symbols in the new table
+    if (window.MathJax) {
+        console.log("Rendering math symbols in summary...");
+        MathJax.typesetPromise(); 
+    }
+
+    // 5. Cleanup cloud progress
     await supabaseClient.from('student_progress').delete().eq('username', currentUsername);
 };
 
