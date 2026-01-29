@@ -28,25 +28,29 @@ const questionBanks = {
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUsername = "yagya_student"; 
 
-// 3. CLOUD PERSISTENCE
+// 3. CLOUD PERSISTENCE (CONSOLIDATED & FIXED)
 async function saveToCloud() {
     const sub = document.getElementById('subject-select').value;
-    const { error } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from('student_progress')
         .upsert({ 
             username: currentUsername,
             subject: sub,
             current_index: currentIndex,
-            user_answers: [...userAnswers],
+            user_answers: [...userAnswers], // Use spread to ensure clean array serialization
             confirmed_answered: [...confirmedAnswered],
             marked_for_review: [...markedForReview],
             time_left: timeLeft
         }, { onConflict: 'username' });
 
-    if (error) console.error('Cloud Save Error:', error.message);
+    if (error) {
+        console.error('Cloud Save Error:', error.message, error.details);
+    } else {
+        console.log('Progress saved successfully to Supabase');
+    }
 }
 
-// 4. TEST NAME POPULATION (RESTORED & FIXED)
+// 4. UI SYNC
 window.updateTestNames = function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
@@ -69,7 +73,7 @@ window.startExam = async function() {
     activeBank = questionBanks[sub] || questionBanks['mathematics'];
     
     // Check for existing cloud progress
-    const { data } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from('student_progress')
         .select('*')
         .eq('username', currentUsername)
@@ -213,24 +217,3 @@ document.addEventListener('DOMContentLoaded', () => {
         subSelect.addEventListener('change', updateTestNames);
     }
 });
-
-async function saveToCloud() {
-    const sub = document.getElementById('subject-select').value;
-    const { data, error } = await supabaseClient
-        .from('student_progress')
-        .upsert({ 
-            username: currentUsername,
-            subject: sub,
-            current_index: currentIndex,
-            user_answers: userAnswers,
-            confirmed_answered: confirmedAnswered,
-            marked_for_review: markedForReview,
-            time_left: timeLeft
-        }, { onConflict: 'username' }); // This is required for upsert to work
-
-    if (error) {
-        console.error('Cloud Save Error:', error.message, error.details);
-    } else {
-        console.log('Progress saved successfully');
-    }
-}
