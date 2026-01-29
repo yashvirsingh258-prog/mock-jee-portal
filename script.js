@@ -26,9 +26,9 @@ const questionBanks = {
 
 // 2. STATE MANAGEMENT
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
-let currentUsername = "yagya_student"; // Fixed username for testing logic
+let currentUsername = "yagya_student"; 
 
-// NEW: Cloud Persistence Function
+// 3. CLOUD PERSISTENCE
 async function saveToCloud() {
     const sub = document.getElementById('subject-select').value;
     const { error } = await supabaseClient
@@ -43,10 +43,14 @@ async function saveToCloud() {
             time_left: timeLeft
         }, { onConflict: 'username' });
 
-    if (error) console.error('Cloud Save Error:', error.message);
+    if (error) {
+        console.error('Cloud Save Error:', error.message);
+    } else {
+        console.log('Progress saved successfully');
+    }
 }
 
-// 3. UI SYNC & NAVIGATION
+// 4. UI SYNC & NAVIGATION
 window.updateTestNames = function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
@@ -62,12 +66,12 @@ window.setView = function(view) {
     document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
 };
 
-// 4. TEST CONTROLS (Updated to pull from Cloud)
+// 5. TEST CONTROLS
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
+    activeBank = questionBanks[sub] || questionBanks['mathematics'];
     
-    // Check Cloud for existing progress
-    const { data } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from('student_progress')
         .select('*')
         .eq('username', currentUsername)
@@ -75,14 +79,12 @@ window.startExam = async function() {
         .single();
 
     if (data && confirm("Resume your previous session from cloud?")) {
-        activeBank = questionBanks[sub] || questionBanks['mathematics'];
         currentIndex = data.current_index;
-        userAnswers = data.user_answers;
-        confirmedAnswered = data.confirmed_answered;
-        markedForReview = data.marked_for_review;
+        userAnswers = data.user_answers || new Array(activeBank.length).fill("");
+        confirmedAnswered = data.confirmed_answered || new Array(activeBank.length).fill(false);
+        markedForReview = data.marked_for_review || new Array(activeBank.length).fill(false);
         timeLeft = data.time_left;
     } else {
-        activeBank = questionBanks[sub] || questionBanks['mathematics'];
         userAnswers = new Array(activeBank.length).fill("");
         confirmedAnswered = new Array(activeBank.length).fill(false);
         markedForReview = new Array(activeBank.length).fill(false);
@@ -137,7 +139,7 @@ window.loadQuestion = function() {
     if (window.MathJax) MathJax.typesetPromise();
 };
 
-// 5. BUTTON ACTIONS (Updated with saveToCloud)
+// 6. BUTTON ACTIONS
 window.saveAnswer = function(val) { 
     userAnswers[currentIndex] = val; 
     saveToCloud();
@@ -172,7 +174,7 @@ window.clearResponse = function() {
     saveToCloud();
 };
 
-// 6. PALETTE & STATS
+// 7. PALETTE & STATS
 function renderPalette() {
     const grid = document.getElementById('palette-grid');
     grid.innerHTML = activeBank.map((_, i) => `
@@ -200,7 +202,7 @@ function updateStats() {
     document.getElementById('count-not-ans').innerText = activeBank.length - ans;
 }
 
-// 7. TIMER & SUBMIT (Updated with periodic save)
+// 8. TIMER & SUBMIT
 function startTimer() {
     timerActive = true;
     const display = document.getElementById('time');
@@ -208,7 +210,6 @@ function startTimer() {
         if (!timerActive) { clearInterval(interval); return; }
         timeLeft--;
         
-        // Save to cloud every 30 seconds for safety
         if (timeLeft % 30 === 0) saveToCloud();
 
         let m = Math.floor(timeLeft / 60);
@@ -220,11 +221,9 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
-// MODERN SUMMARY TABLE
 window.finalSubmission = async function() {
     timerActive = false; 
     
-    // Optional: Clear cloud progress upon successful submission
     await supabaseClient
         .from('student_progress')
         .delete()
@@ -304,5 +303,5 @@ window.openSolutionTab = function(index) {
     newTab.document.close();
 };
 
-// 8. INITIALIZE
+// 9. INITIALIZE
 document.addEventListener('DOMContentLoaded', () => { updateTestNames(); });
