@@ -9,15 +9,15 @@ const questionBanks = {
         { type: "mcq", q: "Let $A = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 1 \\end{bmatrix}$. If $A^n = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & n \\\\ 0 & 0 & 1 \\end{bmatrix}$, then $|adj(A^{10})|$ is:", options: ["1", "10", "100", "0"], correct: "1", solution: "Since $|A|=1$, then $|A^{10}|=1$. $|adj(M)| = |M|^{n-1}$." },
         { type: "mcq", q: "If $S_n = 3n^2 + 4n$, then the $n^{th}$ term $a_n$ is:", options: ["$6n + 1$", "$6n - 1$", "$3n + 1$", "$3n - 1$"], correct: "$6n + 1$", solution: "$a_n = S_n - S_{n-1}$." },
         { type: "mcq", q: "The value of $\\int_{-1}^{1} \\frac{x^4}{1 + e^{x^7}} dx$ is:", options: ["0", "1/5", "2/5", "4/5"], correct: "1/5", solution: "Property of definite integrals." },
-        { type: "mcq", q: "The number of solutions of $\\sin^{-1} x = 2\\tan^{-1} x$ is:", options: ["1", "2", "3", "0"], correct: "3", solution: "Solve for x: 0, 1, -1." },
+        { type: "mcq", q: "The number of solutions of $\\sin^{-1} x = 2\\tan^{-1} x$ is:", options: ["1", "2", "3", "0"], correct: "3", solution: "Total 3 solutions." },
         { type: "mcq", q: "Min area of $\\triangle OAB$ for tangent to $\\frac{x^2}{27} + \\frac{y^2}{3} = 1$ is:", options: ["9", "18", "27", "9\\sqrt{3}"], correct: "9", solution: "Area = ab = 9." },
         { type: "mcq", q: "Probability $3^n + 4^n$ is multiple of 5 for 2-digit $n$:", options: ["1/2", "1/3", "1/4", "1/5"], correct: "1/2", solution: "n must be odd." },
         { type: "mcq", q: "If $\\vec{a} = \\hat{i} - \\lambda \\hat{j} + \\hat{k}$ and $\\vec{b} = \\hat{i} + \\hat{j} + \\mu \\hat{k}$ are collinear, $(\\lambda, \\mu)$ is:", options: ["(1, 1)", "(-1, 1)", "(1, -1)", "(-1, -1)"], correct: "(-1, 1)", solution: "Ratios are equal." },
         { type: "mcq", q: "Local minimum of $f(x) = x^x$ is at:", options: ["e", "1/e", "1", "ln 2"], correct: "1/e", solution: "f'(x) = x^x(1 + lnx)." },
         { type: "num", q: "Subsets of $\\{1, 2, \\dots, 10\\}$ with at least one odd number:", correct: "992", solution: "2^10 - 2^5 = 992." },
-        { type: "num", q: "Positive $k$ if $x-y=k$ is tangent to $x^2+y^2=32$:", correct: "8", solution: "k^2 = 32(1+1)." },
+        { type: "num", q: "Positive $k$ if $x-y=k$ is tangent to $x^2+y^2=32$:", correct: "8", solution: "k^2 = 64." },
         { type: "num", q: "Intersection points of $y=\\cos x$ and $y=\\ln x$ in $(0, 2\\pi)$:", correct: "1", solution: "One point of intersection." },
-        { type: "num", q: "Find $a$ if coefficients of $x^2$ and $x^3$ in $(3+ax)^9$ are equal:", correct: "1", solution: "Equate binomial coefficients." },
+        { type: "num", q: "Find $a$ if coefficients of $x^2$ and $x^3$ in $(3+ax)^9$ are equal:", correct: "1", solution: "Equate coefficients." },
         { type: "num", q: "Variance of first 10 natural numbers:", correct: "8.25", solution: "(n^2 - 1)/12." },
         { type: "num", q: "Find $k$ if $\\lim_{x \\to 0} \\frac{\\cos(6x)-1}{kx^2} = -9$:", correct: "2", solution: "L'Hopital's rule." },
         { type: "num", q: "Area bounded by $y^2=4x$ and $x^2=4y$:", correct: "5.33", solution: "Integral calculation." }
@@ -28,7 +28,7 @@ const questionBanks = {
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. AUTHENTICATION (Fixed Security)
+// 3. AUTHENTICATION (Fixed to start exam properly)
 window.handleLogin = async function() {
     const email = document.getElementById('login-email').value.trim();
     const pass = document.getElementById('login-pass').value.trim();
@@ -44,24 +44,8 @@ window.handleLogin = async function() {
         alert("Login failed: " + error.message);
     } else if (data.user) {
         currentUserEmail = data.user.email;
-        console.log("Welcome:", currentUserEmail);
-        startExam(); // Proceed to exam on success
+        startExam(); // CRITICAL FIX: This triggers the question loading logic
     }
-};
-
-window.handleSignup = async function() {
-    const email = prompt("Enter Email:");
-    const pass = prompt("Enter Password:");
-    const name = prompt("Enter Full Name:");
-
-    if (!email || !pass || !name) return;
-
-    const { error } = await supabaseClient.auth.signUp({
-        email, password: pass, options: { data: { full_name: name } }
-    });
-
-    if (error) alert(error.message);
-    else alert("Signup Success! Check email for confirmation.");
 };
 
 // 4. CLOUD PERSISTENCE
@@ -141,26 +125,39 @@ window.loadQuestion = function() {
                 }
             </div>
         </div>`;
+    updateStats();
     updatePaletteUI();
     if (window.MathJax) MathJax.typesetPromise();
 };
 
 window.saveAnswer = function(val) { userAnswers[currentIndex] = val; saveToCloud(); };
 window.saveAndNext = function() {
-    if (userAnswers[currentIndex] !== "") confirmedAnswered[currentIndex] = true;
+    if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; }
     if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
     saveToCloud();
 };
 
-window.prevQuestion = function() { if (currentIndex > 0) { currentIndex--; loadQuestion(); } };
-window.clearResponse = function() { userAnswers[currentIndex] = ""; confirmedAnswered[currentIndex] = false; loadQuestion(); saveToCloud(); };
-window.markForReview = function() { markedForReview[currentIndex] = true; updatePaletteUI(); saveToCloud(); };
+window.markForReview = function() {
+    markedForReview[currentIndex] = true;
+    if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
+    else { updatePaletteUI(); }
+    saveToCloud();
+};
+
+window.clearResponse = function() {
+    userAnswers[currentIndex] = "";
+    confirmedAnswered[currentIndex] = false;
+    markedForReview[currentIndex] = false;
+    loadQuestion();
+    saveToCloud();
+};
 
 function startTimer() {
     timerActive = true;
     const interval = setInterval(() => {
         if (!timerActive) { clearInterval(interval); return; }
         timeLeft--;
+        if (timeLeft % 30 === 0) saveToCloud();
         document.getElementById('time').innerText = `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}`;
         if (timeLeft <= 0) finalSubmission();
     }, 1000);
@@ -168,80 +165,83 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
+// MODERN TEST SUMMARY
 window.finalSubmission = async function() {
     timerActive = false; 
     let score = 0;
     const totalQuestions = activeBank.length;
     
-    // 1. Calculate Score and build modern table rows
     let tableRows = activeBank.map((q, i) => {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
         return `
             <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding:15px; text-align:center; font-weight:bold; color:#555;">${i+1}</td>
-                <td style="padding:15px; text-align:left; color:#333;">${q.q}</td>
-                <td style="padding:15px; text-align:center; font-weight:bold; color:${isCorrect ? '#27ae60' : '#e74c3c'}">
-                    ${userAnswers[i] || '<span style="color:#aaa;">N/A</span>'}
-                </td>
+                <td style="padding:15px; text-align:center;">${i+1}</td>
+                <td style="padding:15px; text-align:left;">${q.q}</td>
+                <td style="padding:15px; text-align:center; font-weight:bold; color:${isCorrect ? '#27ae60' : '#e74c3c'}">${userAnswers[i] || 'N/A'}</td>
                 <td style="padding:15px; text-align:center; font-weight:bold; color:#0b4a8f;">${q.correct}</td>
             </tr>`;
     }).join('');
 
     const percentage = ((score / totalQuestions) * 100).toFixed(2);
-
-    // 2. Switch to result view
     setView('result');
 
-    // 3. Render the Modern Score Sticker
+    // MODERN STICKER AT TOP
     document.getElementById('score-val').innerHTML = `
         <div style="display: flex; justify-content: center; margin-bottom: 40px;">
-            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e90ff 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(11, 74, 143, 0.3); text-align: center; min-width: 320px; transition: transform 0.3s ease;">
+            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e90ff 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(11, 74, 143, 0.3); text-align: center; min-width: 320px;">
                 <div style="font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">Score Report</div>
                 <div style="font-size: 3.5rem; font-weight: 800; margin: 0; line-height: 1;">${score} <span style="font-size: 1.5rem; opacity: 0.7;">/ ${totalQuestions}</span></div>
-                <div style="margin-top: 20px; font-size: 1.4rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 8px 25px; border-radius: 50px; font-weight: 500;">
-                    ${percentage}% Accuracy
+                <div style="margin-top: 20px; font-size: 1.4rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 8px 25px; border-radius: 50px;">
+                    Accuracy: ${percentage}%
                 </div>
             </div>
-        </div>
-    `;
+        </div>`;
 
-    // 4. Render the Review Table with clean styling
     document.getElementById('review-panel').innerHTML = `
         <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-            <table style="width:100%; border-collapse:collapse; font-family: sans-serif;">
+            <table style="width:100%; border-collapse:collapse;">
                 <thead>
-                    <tr style="background-color: #f8f9fa; border-bottom: 2px solid #eee;">
-                        <th style="padding:15px; width: 60px; color:#666;">Q.No</th>
-                        <th style="padding:15px; text-align:left; color:#666;">Question</th>
-                        <th style="padding:15px; color:#666;">Your Response</th>
-                        <th style="padding:15px; color:#666;">Correct Answer</th>
+                    <tr style="background-color: #f8f9fa;">
+                        <th style="padding:15px;">Q.No</th>
+                        <th style="padding:15px; text-align:left;">Question Description</th>
+                        <th style="padding:15px;">Your Response</th>
+                        <th style="padding:15px;">Correct Answer</th>
                     </tr>
                 </thead>
-                <tbody>
-                    ${tableRows}
-                </tbody>
+                <tbody>${tableRows}</tbody>
             </table>
         </div>`;
 
-    // 5. Re-render MathJax for the new content
-    if (window.MathJax) {
-        setTimeout(() => {
-            MathJax.typesetPromise([document.getElementById('review-panel')]);
-        }, 200);
-    }
+    if (window.MathJax) setTimeout(() => { MathJax.typesetPromise([document.getElementById('review-panel')]); }, 200);
 
-    // 6. Final Progress Sync
     const sub = document.getElementById('subject-select').value;
-    await supabaseClient.from('student_progress').upsert({ 
-        username: currentUserEmail, 
-        subject: sub,
-        is_finished: true,
-        user_answers: [...userAnswers] 
-    }, { onConflict: 'username' });
+    await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, subject: sub, is_finished: true, user_answers: [...userAnswers] }, { onConflict: 'username' });
 };
 
-// 6. INITIALIZE
+// 7. UI HELPERS
+function renderPalette() {
+    document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
+        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px;">${i+1}</div>`).join('');
+}
+window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
+function updatePaletteUI() {
+    activeBank.forEach((_, i) => {
+        const dot = document.getElementById(`dot-${i}`);
+        if (!dot) return;
+        dot.style.background = markedForReview[i] ? "#8e44ad" : (confirmedAnswered[i] ? "#2d8c3c" : "#fff");
+        dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333";
+        dot.style.border = (i === currentIndex) ? "2px solid #0b4a8f" : "1px solid #ccc";
+    });
+}
+function updateStats() {
+    const ans = confirmedAnswered.filter(x => x).length;
+    document.getElementById('count-ans').innerText = ans;
+    document.getElementById('count-not-ans').innerText = activeBank.length - ans;
+}
+
 document.addEventListener('DOMContentLoaded', () => { 
-    updateTestNames(); // Populate test names immediately
+    updateTestNames(); 
+    const subSelect = document.getElementById('subject-select');
+    if(subSelect) subSelect.addEventListener('change', updateTestNames);
 });
