@@ -213,3 +213,26 @@ document.addEventListener('DOMContentLoaded', () => {
         subSelect.addEventListener('change', updateTestNames);
     }
 });
+
+async function saveToCloud() {
+    const sub = document.getElementById('subject-select').value;
+    const { data, error } = await supabaseClient
+        .from('student_progress')
+        .upsert({ 
+            username: currentUsername,
+            subject: sub,
+            current_index: currentIndex,
+            user_answers: userAnswers,
+            confirmed_answered: confirmedAnswered,
+            marked_for_review: markedForReview,
+            time_left: timeLeft
+        }, { onConflict: 'username' });
+
+    if (error) {
+        // This will tell you if it's a permission (RLS) or data type error
+        console.error('DATABASE ERROR:', error.message);
+        console.error('ERROR DETAILS:', error.details);
+    } else {
+        console.log('Successfully saved to cloud:', data);
+    }
+}
