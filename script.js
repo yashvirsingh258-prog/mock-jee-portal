@@ -26,9 +26,9 @@ const questionBanks = {
 
 // 2. STATE MANAGEMENT
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
-let currentUsername = "student_test_01"; // Default identifier
+let currentUsername = "yagya_student"; // Fixed username for testing logic
 
-// NEW: Cloud Persistence Logic
+// NEW: Cloud Persistence Function
 async function saveToCloud() {
     const sub = document.getElementById('subject-select').value;
     const { error } = await supabaseClient
@@ -67,7 +67,7 @@ window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     
     // Check Cloud for existing progress
-    const { data, error } = await supabaseClient
+    const { data } = await supabaseClient
         .from('student_progress')
         .select('*')
         .eq('username', currentUsername)
@@ -100,7 +100,6 @@ window.startExam = async function() {
 window.loadQuestion = function() {
     const data = activeBank[currentIndex];
     const area = document.getElementById('question-area');
-    
     const hoverStyle = `
         <style>
             .opt-label { transition: all 0.2s ease; border: 1px solid #ddd !important; }
@@ -154,7 +153,7 @@ window.saveAndNext = function() {
 };
 
 window.prevQuestion = function() { 
-    if (currentIndex > 0) { currentIndex--; loadQuestion(); }
+    if (currentIndex > 0) { currentIndex--; loadQuestion(); } 
     saveToCloud();
 };
 
@@ -201,7 +200,7 @@ function updateStats() {
     document.getElementById('count-not-ans').innerText = activeBank.length - ans;
 }
 
-// 7. TIMER & SUBMIT
+// 7. TIMER & SUBMIT (Updated with periodic save)
 function startTimer() {
     timerActive = true;
     const display = document.getElementById('time');
@@ -209,7 +208,7 @@ function startTimer() {
         if (!timerActive) { clearInterval(interval); return; }
         timeLeft--;
         
-        // Periodic cloud save every 30 seconds
+        // Save to cloud every 30 seconds for safety
         if (timeLeft % 30 === 0) saveToCloud();
 
         let m = Math.floor(timeLeft / 60);
@@ -225,7 +224,7 @@ window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSub
 window.finalSubmission = async function() {
     timerActive = false; 
     
-    // Clear cloud progress upon successful submission
+    // Optional: Clear cloud progress upon successful submission
     await supabaseClient
         .from('student_progress')
         .delete()
@@ -307,19 +306,3 @@ window.openSolutionTab = function(index) {
 
 // 8. INITIALIZE
 document.addEventListener('DOMContentLoaded', () => { updateTestNames(); });
-
-// Test connection immediately
-async function testConnection() {
-    console.log("Testing Supabase connection...");
-    const { data, error } = await supabaseClient
-        .from('student_progress')
-        .upsert({ username: 'debug_test', subject: 'math' })
-        .select();
-
-    if (error) {
-        console.error("CONNECTION FAILED:", error.message);
-    } else {
-        console.log("SUCCESS! Data is in the table:", data);
-    }
-}
-testConnection();
