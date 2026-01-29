@@ -307,3 +307,19 @@ window.openSolutionTab = function(index) {
 
 // 8. INITIALIZE
 document.addEventListener('DOMContentLoaded', () => { updateTestNames(); });
+
+// Test connection immediately
+async function testConnection() {
+    console.log("Testing Supabase connection...");
+    const { data, error } = await supabaseClient
+        .from('student_progress')
+        .upsert({ username: 'debug_test', subject: 'math' })
+        .select();
+
+    if (error) {
+        console.error("CONNECTION FAILED:", error.message);
+    } else {
+        console.log("SUCCESS! Data is in the table:", data);
+    }
+}
+testConnection();
