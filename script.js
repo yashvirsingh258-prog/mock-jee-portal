@@ -217,3 +217,30 @@ document.addEventListener('DOMContentLoaded', () => {
         subSelect.addEventListener('change', updateTestNames);
     }
 });
+
+async function saveToCloud() {
+    const sub = document.getElementById('subject-select').value;
+    
+    // Ensure data is perfectly serialized for PostgreSQL jsonb
+    const payload = { 
+        username: currentUsername,
+        subject: sub,
+        current_index: currentIndex,
+        user_answers: JSON.parse(JSON.stringify(userAnswers)),
+        confirmed_answered: JSON.parse(JSON.stringify(confirmedAnswered)),
+        marked_for_review: JSON.parse(JSON.stringify(markedForReview)),
+        time_left: timeLeft
+    };
+
+    const { data, error } = await supabaseClient
+        .from('student_progress')
+        .upsert(payload, { onConflict: 'username' });
+
+    if (error) {
+        console.error('❌ DATABASE REJECTED DATA:', error.message);
+        console.error('Error Details:', error.details);
+        console.error('Hint:', error.hint);
+    } else {
+        console.log('✅ Progress synced to Supabase');
+    }
+}
