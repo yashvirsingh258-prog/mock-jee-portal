@@ -169,6 +169,7 @@ window.finalSubmission = async function() {
     timerActive = false; 
     let score = 0;
     
+    // 1. Generate the Summary Table
     let tableRows = activeBank.map((q, i) => {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
@@ -179,15 +180,23 @@ window.finalSubmission = async function() {
     document.getElementById('score-val').innerHTML = `<h3>Final Score: ${score} / ${activeBank.length}</h3>`;
     document.getElementById('review-panel').innerHTML = `<table style="width:100%; border-collapse:collapse;" border="1">${tableRows}</table>`;
 
-    // Ensure MathJax renders the summary table
+    // 2. Render MathJax for the summary
     if (window.MathJax) {
-        setTimeout(() => {
-            MathJax.typesetPromise([document.getElementById('review-panel')]);
-        }, 150);
+        setTimeout(() => { MathJax.typesetPromise([document.getElementById('review-panel')]); }, 150);
     }
 
-    // UPDATED: Do NOT delete from cloud here so data stays in your Supabase table
-    console.log("Submission completed. Data preserved in cloud.");
+    // 3. FIX: Mark as finished instead of deleting
+    const sub = document.getElementById('subject-select').value;
+    await supabaseClient
+        .from('student_progress')
+        .upsert({ 
+            username: currentUsername, 
+            subject: sub,
+            is_finished: true, // This requires the column to exist in Supabase
+            user_answers: [...userAnswers] 
+        }, { onConflict: 'username' });
+
+    console.log("Data preserved. is_finished set to true.");
 };
 
 // 7. UI HELPERS
