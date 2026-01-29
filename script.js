@@ -28,25 +28,29 @@ const questionBanks = {
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUsername = "yagya_student"; 
 
-// 3. CLOUD PERSISTENCE (CONSOLIDATED & FIXED)
+// 3. CLOUD PERSISTENCE
 async function saveToCloud() {
     const sub = document.getElementById('subject-select').value;
-    const { data, error } = await supabaseClient
+    
+    // Ensure data is perfectly serialized for PostgreSQL jsonb
+    const payload = { 
+        username: currentUsername,
+        subject: sub,
+        current_index: currentIndex,
+        user_answers: JSON.parse(JSON.stringify(userAnswers)),
+        confirmed_answered: JSON.parse(JSON.stringify(confirmedAnswered)),
+        marked_for_review: JSON.parse(JSON.stringify(markedForReview)),
+        time_left: timeLeft
+    };
+
+    const { error } = await supabaseClient
         .from('student_progress')
-        .upsert({ 
-            username: currentUsername,
-            subject: sub,
-            current_index: currentIndex,
-            user_answers: [...userAnswers], // Use spread to ensure clean array serialization
-            confirmed_answered: [...confirmedAnswered],
-            marked_for_review: [...markedForReview],
-            time_left: timeLeft
-        }, { onConflict: 'username' });
+        .upsert(payload, { onConflict: 'username' });
 
     if (error) {
-        console.error('Cloud Save Error:', error.message, error.details);
+        console.error('❌ DATABASE REJECTED DATA:', error.message);
     } else {
-        console.log('Progress saved successfully to Supabase');
+        console.log('✅ Progress synced to Supabase');
     }
 }
 
@@ -56,7 +60,6 @@ window.updateTestNames = function() {
     const testSelect = document.getElementById('test-name-select');
     if (testSelect) {
         testSelect.innerHTML = `<option value="test1">${sub.toUpperCase()} Mock Test 1</option>`;
-        console.log("Test names updated for:", sub);
     }
 };
 
@@ -72,8 +75,7 @@ window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     activeBank = questionBanks[sub] || questionBanks['mathematics'];
     
-    // Check for existing cloud progress
-    const { data, error } = await supabaseClient
+    const { data } = await supabaseClient
         .from('student_progress')
         .select('*')
         .eq('username', currentUsername)
@@ -162,37 +164,30 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
+// UPDATED: NO DELETE CALL, INCLUDES MATH RENDERING
 window.finalSubmission = async function() {
     timerActive = false; 
     let score = 0;
     
-    // Ensure we are using the latest local data for the table
     let tableRows = activeBank.map((q, i) => {
-        const userAnswer = userAnswers[i] || "N/A"; // Prevents empty cells
-        const isCorrect = userAnswer.toString().trim() === q.correct.toString().trim();
+        const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
-        
-        return `<tr>
-            <td style="padding:10px;">${i+1}</td>
-            <td style="padding:10px; text-align:left;">${q.q}</td>
-            <td style="padding:10px; color:${isCorrect ? 'green' : 'red'}">${userAnswer}</td>
-            <td style="padding:10px;">${q.correct}</td>
-        </tr>`;
+        return `<tr><td style="padding:10px;">${i+1}</td><td style="padding:10px;">${q.q}</td><td style="padding:10px; color:${isCorrect ? 'green' : 'red'}">${userAnswers[i] || 'N/A'}</td><td style="padding:10px;">${q.correct}</td></tr>`;
     }).join('');
 
     setView('result');
     document.getElementById('score-val').innerHTML = `<h3>Final Score: ${score} / ${activeBank.length}</h3>`;
     document.getElementById('review-panel').innerHTML = `<table style="width:100%; border-collapse:collapse;" border="1">${tableRows}</table>`;
 
-    // CRITICAL: Re-run MathJax on the new summary content
+    // Ensure MathJax renders the summary table
     if (window.MathJax) {
         setTimeout(() => {
             MathJax.typesetPromise([document.getElementById('review-panel')]);
-        }, 200);
+        }, 150);
     }
-    
-    // Deleting from cloud AFTER user sees the result
-    await supabaseClient.from('student_progress').delete().eq('username', currentUsername);
+
+    // UPDATED: Do NOT delete from cloud here so data stays in your Supabase table
+    console.log("Submission completed. Data preserved in cloud.");
 };
 
 // 7. UI HELPERS
@@ -220,38 +215,11 @@ function updateStats() {
     document.getElementById('count-not-ans').innerText = activeBank.length - ans;
 }
 
-// 8. INITIALIZE (Run when page loads)
+// 8. INITIALIZE
 document.addEventListener('DOMContentLoaded', () => { 
-    updateTestNames(); // POPULATE DROPDOWN IMMEDIATELY
+    updateTestNames(); 
     const subSelect = document.getElementById('subject-select');
     if(subSelect) {
         subSelect.addEventListener('change', updateTestNames);
     }
 });
-
-async function saveToCloud() {
-    const sub = document.getElementById('subject-select').value;
-    
-    // Ensure data is perfectly serialized for PostgreSQL jsonb
-    const payload = { 
-        username: currentUsername,
-        subject: sub,
-        current_index: currentIndex,
-        user_answers: JSON.parse(JSON.stringify(userAnswers)),
-        confirmed_answered: JSON.parse(JSON.stringify(confirmedAnswered)),
-        marked_for_review: JSON.parse(JSON.stringify(markedForReview)),
-        time_left: timeLeft
-    };
-
-    const { data, error } = await supabaseClient
-        .from('student_progress')
-        .upsert(payload, { onConflict: 'username' });
-
-    if (error) {
-        console.error('❌ DATABASE REJECTED DATA:', error.message);
-        console.error('Error Details:', error.details);
-        console.error('Hint:', error.hint);
-    } else {
-        console.log('✅ Progress synced to Supabase');
-    }
-}
