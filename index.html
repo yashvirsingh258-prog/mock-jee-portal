@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JEE Main Portal</title>
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], processEscapes: true },
+            options: { processHtmlClass: 'tex2jax_process' }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="no-select">
+
+    <div id="login-screen">
+        <div class="login-card">
+            <h2>JEE (Mock Tests) Portal Login</h2>
+            <input type="text" id="login-id" placeholder="Username (yagya)">
+            <input type="password" id="login-password" placeholder="Password (11111)">
+            
+            <label class="field-label">Subject:</label>
+            <select id="subject-select" onchange="updateTestNames()">
+                <option value="mathematics">Mathematics</option>
+                <option value="physics">Physics</option>
+                <option value="chemistry">Chemistry</option>
+            </select>
+
+            <label class="field-label">Test Name:</label>
+            <select id="test-name-select"></select>
+
+            <button class="btn-pri" style="width:100%; margin-top:20px;" onclick="startExam()">Start Test</button>
+        </div>
+    </div>
+
+    <div class="header" id="exam-header" style="display: none;">
+        <div>JEE MAIN | <span id="display-subject"></span></div>
+        <div id="timer-box">TIME: <span id="time">40:00</span></div>
+    </div>
+
+    <div class="main-layout" id="quiz-container" style="display: none;">
+        <div class="container">
+            <div id="question-area" class="tex2jax_process"></div>
+            
+            <div class="nav-bar">
+                <button class="btn-sec" onclick="prevQuestion()">Previous</button>
+                <button class="btn-rev" onclick="markForReview()">Mark for Review</button>
+                <button class="btn-clear" onclick="clearResponse()">Clear Response</button>
+                <button class="btn-pri" id="next-btn" onclick="saveAndNext()">Save & Next</button>
+            </div>
+            
+            <button class="btn-danger" onclick="confirmSubmit()">SUBMIT EXAMINATION</button>
+        </div>
+        
+        <div class="palette">
+            <div class="summary-box">
+                <div class="stat">Answered: <span id="count-ans">0</span></div>
+                <div class="stat">Not Answered: <span id="count-not-ans">0</span></div>
+            </div>
+
+            <h4>Question Palette</h4>
+            <div id="palette-grid"></div>
+            
+            <div class="legend-section">
+                <div class="leg-row">
+                    <div class="leg-item"><span class="dot-leg"></span> Not Visited</div>
+                    <div class="leg-item"><span class="dot-leg ans"></span> Answered</div>
+                </div>
+                <div class="leg-row">
+                    <div class="leg-item"><span class="dot-leg not-ans"></span> Not Answered</div>
+                    <div class="leg-item"><span class="dot-leg rev"></span> Marked for Review</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="result-screen" style="display: none; padding: 20px;">
+        <div class="result-card tex2jax_process">
+            <h1>Test Summary</h1>
+            <div id="score-val"></div>
+            <div id="review-panel"></div>
+            <hr>
+            <button class="btn-pri" onclick="location.reload()">Back to Login</button>
+        </div>
+    </div>
+
+    <div id="general-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div id="modal-body" class="tex2jax_process"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
