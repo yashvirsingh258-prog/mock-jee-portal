@@ -30,30 +30,52 @@ let currentUserEmail = ""; // Dynamic identity
 
 // 3. AUTHENTICATION HANDLERS
 window.handleLogin = async function() {
-    const email = document.getElementById('login-email').value;
-    const pass = document.getElementById('login-pass').value;
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-pass').value.trim();
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+    // Prevent empty login attempts
+    if (!email || !pass) {
+        alert("Please enter both email and password.");
+        return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ 
+        email: email, 
+        password: pass 
+    });
 
     if (error) {
         alert("Login failed: " + error.message);
-    } else {
+    } else if (data.user) {
+        // Only proceed if we have a valid user object
         currentUserEmail = data.user.email;
+        console.log("Welcome:", currentUserEmail);
         setView('exam');
     }
 };
 
 window.handleSignup = async function() {
-    const email = document.getElementById('signup-email').value;
-    const pass = document.getElementById('signup-pass').value;
-    const name = document.getElementById('signup-name').value;
+    const email = document.getElementById('signup-email').value.trim();
+    const pass = document.getElementById('signup-pass').value.trim();
+    const name = document.getElementById('signup-name').value.trim();
+
+    // Prevent empty signup attempts
+    if (!email || !pass || !name) {
+        alert("All fields are required for registration.");
+        return;
+    }
 
     const { error } = await supabaseClient.auth.signUp({
-        email, password: pass, options: { data: { full_name: name } }
+        email, 
+        password: pass, 
+        options: { data: { full_name: name } }
     });
 
-    if (error) alert("Signup Error: " + error.message);
-    else alert("Success! Check your email for confirmation.");
+    if (error) {
+        alert("Signup Error: " + error.message);
+    } else {
+        alert("Registration successful! Please check your email to confirm your account before logging in.");
+    }
 };
 
 // 4. CLOUD PERSISTENCE
