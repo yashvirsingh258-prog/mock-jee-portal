@@ -1,3 +1,8 @@
+// INITIALIZE SUPABASE
+const supabaseUrl = 'https://ijxsnunkfhudwnkrwmzk.supabase.co';
+const supabaseKey = 'sb_publishable_V-KT1zvp-73dqHHvmx3fNA_iHw53TCl';
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
 // 1. DATA (15 MATHEMATICS QUESTIONS)
 const questionBanks = {
     mathematics: [
@@ -21,6 +26,25 @@ const questionBanks = {
 
 // 2. STATE MANAGEMENT
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
+let currentUsername = "student_test_01"; // Default identifier
+
+// NEW: Cloud Persistence Logic
+async function saveToCloud() {
+    const sub = document.getElementById('subject-select').value;
+    const { error } = await supabaseClient
+        .from('student_progress')
+        .upsert({ 
+            username: currentUsername,
+            subject: sub,
+            current_index: currentIndex,
+            user_answers: userAnswers,
+            confirmed_answered: confirmedAnswered,
+            marked_for_review: markedForReview,
+            time_left: timeLeft
+        }, { onConflict: 'username' });
+
+    if (error) console.error('Cloud Save Error:', error);
+}
 
 // 3. UI SYNC & NAVIGATION
 window.updateTestNames = function() {
@@ -38,13 +62,33 @@ window.setView = function(view) {
     document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
 };
 
-// 4. TEST CONTROLS
-window.startExam = function() {
+// 4. TEST CONTROLS (Updated to pull from Cloud)
+window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
-    activeBank = questionBanks[sub] || questionBanks['mathematics'];
-    userAnswers = new Array(activeBank.length).fill("");
-    confirmedAnswered = new Array(activeBank.length).fill(false);
-    markedForReview = new Array(activeBank.length).fill(false);
+    
+    // Check Cloud for existing progress
+    const { data, error } = await supabaseClient
+        .from('student_progress')
+        .select('*')
+        .eq('username', currentUsername)
+        .eq('subject', sub)
+        .single();
+
+    if (data && confirm("Resume your previous session from cloud?")) {
+        activeBank = questionBanks[sub] || questionBanks['mathematics'];
+        currentIndex = data.current_index;
+        userAnswers = data.user_answers;
+        confirmedAnswered = data.confirmed_answered;
+        markedForReview = data.marked_for_review;
+        timeLeft = data.time_left;
+    } else {
+        activeBank = questionBanks[sub] || questionBanks['mathematics'];
+        userAnswers = new Array(activeBank.length).fill("");
+        confirmedAnswered = new Array(activeBank.length).fill(false);
+        markedForReview = new Array(activeBank.length).fill(false);
+        timeLeft = 40 * 60;
+        currentIndex = 0;
+    }
     
     document.getElementById('display-subject').innerText = sub.toUpperCase();
     setView('exam');
@@ -57,7 +101,6 @@ window.loadQuestion = function() {
     const data = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // Define Hover and Active Selection styles dynamically
     const hoverStyle = `
         <style>
             .opt-label { transition: all 0.2s ease; border: 1px solid #ddd !important; }
@@ -95,8 +138,11 @@ window.loadQuestion = function() {
     if (window.MathJax) MathJax.typesetPromise();
 };
 
-// 5. BUTTON ACTIONS
-window.saveAnswer = function(val) { userAnswers[currentIndex] = val; };
+// 5. BUTTON ACTIONS (Updated with saveToCloud)
+window.saveAnswer = function(val) { 
+    userAnswers[currentIndex] = val; 
+    saveToCloud();
+};
 
 window.saveAndNext = function() {
     if (userAnswers[currentIndex] !== "") {
@@ -104,14 +150,19 @@ window.saveAndNext = function() {
         markedForReview[currentIndex] = false;
     }
     if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
+    saveToCloud();
 };
 
-window.prevQuestion = function() { if (currentIndex > 0) { currentIndex--; loadQuestion(); } };
+window.prevQuestion = function() { 
+    if (currentIndex > 0) { currentIndex--; loadQuestion(); }
+    saveToCloud();
+};
 
 window.markForReview = function() {
     markedForReview[currentIndex] = true;
     if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
     else { updatePaletteUI(); }
+    saveToCloud();
 };
 
 window.clearResponse = function() {
@@ -119,6 +170,7 @@ window.clearResponse = function() {
     confirmedAnswered[currentIndex] = false;
     markedForReview[currentIndex] = false;
     loadQuestion();
+    saveToCloud();
 };
 
 // 6. PALETTE & STATS
@@ -129,7 +181,7 @@ function renderPalette() {
     `).join('');
 }
 
-window.jumpTo = function(i) { currentIndex = i; loadQuestion(); };
+window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
 
 function updatePaletteUI() {
     activeBank.forEach((_, i) => {
@@ -156,6 +208,10 @@ function startTimer() {
     const interval = setInterval(() => {
         if (!timerActive) { clearInterval(interval); return; }
         timeLeft--;
+        
+        // Save to cloud every 30 seconds to minimize API calls but ensure safety
+        if (timeLeft % 30 === 0) saveToCloud();
+
         let m = Math.floor(timeLeft / 60);
         let s = timeLeft % 60;
         display.innerText = `${m}:${s < 10 ? '0' + s : s}`;
@@ -166,8 +222,16 @@ function startTimer() {
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
 // MODERN SUMMARY TABLE
-window.finalSubmission = function() {
-    timerActive = false; setView('result');
+window.finalSubmission = async function() {
+    timerActive = false; 
+    
+    // Clear cloud progress upon successful submission
+    await supabaseClient
+        .from('student_progress')
+        .delete()
+        .eq('username', currentUsername);
+
+    setView('result');
     let score = 0;
     
     let tableRows = activeBank.map((q, i) => {
