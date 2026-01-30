@@ -173,16 +173,21 @@ function showFinalResultOnly() {
     document.getElementById('result-screen').style.display = 'block';
     document.body.style.background = "#ffffff";
     document.getElementById('result-screen').innerHTML = `
-        <div style="max-width: 1200px; margin: 40px auto; font-family: 'Inter', sans-serif;">
+        <div style="max-width: 1200px; margin: 40px auto; font-family: 'Inter', sans-serif; padding-bottom: 60px;">
             <div style="background: #0b4a8f; color: white; padding: 60px; border-radius: 24px; text-align: center; margin-bottom: 40px;">
                 <h1 style="font-size: 2.5rem; margin-bottom: 15px;">Assessment Report</h1>
                 <div style="font-size: 4rem; font-weight: 900; line-height: 1;">${score} / ${total}</div>
                 <div style="font-size: 1.5rem; font-weight: 600; opacity: 0.9; margin-top: 10px;">Accuracy: ${percentage}%</div>
             </div>
-            <table style="width:100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+            <table style="width:100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 50px;">
                 <thead style="background: #f8fafc;"><tr><th style="padding:20px;">#</th><th style="text-align:left;">Question</th><th>Your Ans</th><th>Key</th><th>Review</th></tr></thead>
                 <tbody>${tableRows}</tbody>
             </table>
+            <div style="text-align: center;">
+                <button onclick="window.location.reload()" style="background: #0b4a8f; color: white; border: none; padding: 18px 45px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(11, 74, 143, 0.2);" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+                    BACK TO PORTAL
+                </button>
+            </div>
         </div>`;
     if (window.MathJax) MathJax.typesetPromise();
 }
