@@ -17,33 +17,24 @@
 
     <div id="login-screen">
         <div class="login-card">
-            <h2>JEE Portal</h2>
+            <h2>JEE Portal Login</h2>
+            <input type="text" id="login-email" placeholder="Student Email">
+            <input type="password" id="login-pass" placeholder="Password">
             
-            <div style="margin-bottom: 10px;">
-                <input type="text" id="login-email" placeholder="Student Email">
-                <input type="password" id="login-pass" placeholder="Password">
-            </div>
-            
-            <div style="text-align: left; margin-bottom: 25px;">
-                <label class="field-label">Select Subject</label>
-                <select id="subject-select" onchange="updateTestNames()">
-                    <option value="mathematics">Mathematics</option>
-                    <option value="physics">Physics</option>
-                    <option value="chemistry">Chemistry</option>
-                </select>
+            <label class="field-label">Subject:</label>
+            <select id="subject-select" onchange="updateTestNames()">
+                <option value="mathematics">Mathematics</option>
+                <option value="physics">Physics</option>
+                <option value="chemistry">Chemistry</option>
+            </select>
 
-                <label class="field-label">Choose Test</label>
-                <select id="test-name-select"></select>
-            </div>
+            <label class="field-label">Test Name:</label>
+            <select id="test-name-select"></select>
 
-            <button class="btn-pri" style="width:100%;" onclick="handleLogin()">
-                Login & Start Examination
+            <button class="btn-pri" style="width:100%; margin-top:20px;" onclick="handleLogin()">Login & Start Test</button>
+            <button class="btn-sec" style="width:100%; margin-top:10px; background:none; border:1px solid #0b4a8f; color:#0b4a8f; cursor:pointer; padding: 10px; border-radius: 4px;" onclick="handleSignup()">
+                Create New Account
             </button>
-            
-            <div style="margin-top: 20px; font-size: 0.85rem; color: #64748b;">
-                Don't have an account? 
-                <span style="color: #0b4a8f; cursor: pointer; font-weight: 700;" onclick="handleSignup()">Create One</span>
-            </div>
         </div>
     </div>
 
@@ -78,11 +69,11 @@
             <div class="legend-section">
                 <div class="leg-row">
                     <div class="leg-item"><span class="dot-leg"></span> Not Visited</div>
-                    <div class="leg-item"><span class="dot-leg" style="background: #198754;"></span> Answered</div>
+                    <div class="leg-item"><span class="dot-leg ans"></span> Answered</div>
                 </div>
                 <div class="leg-row">
-                    <div class="leg-item"><span class="dot-leg" style="background: white; border: 1px solid #cbd5e1;"></span> Not Answered</div>
-                    <div class="leg-item"><span class="dot-leg" style="background: #6f42c1;"></span> Review</div>
+                    <div class="leg-item"><span class="dot-leg not-ans"></span> Not Answered</div>
+                    <div class="leg-item"><span class="dot-leg rev"></span> Marked for Review</div>
                 </div>
             </div>
         </div>
@@ -90,13 +81,11 @@
 
     <div id="result-screen" style="display: none; padding: 20px;">
         <div class="result-card tex2jax_process">
-            <h1 style="text-align: center; color: #0b4a8f;">Test Summary</h1>
+            <h1>Test Summary</h1>
             <div id="score-val"></div>
             <div id="review-panel"></div>
-            <hr style="margin: 30px 0; border: 0; border-top: 1px solid #e2e8f0;">
-            <div style="text-align: center;">
-                <button class="btn-pri" onclick="location.reload()">Back to Dashboard</button>
-            </div>
+            <hr>
+            <button class="btn-pri" onclick="location.reload()">Back to Login</button>
         </div>
     </div>
 
