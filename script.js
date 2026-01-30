@@ -7,17 +7,33 @@ const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. CRITICAL FIX: ASYNCHRONOUS MATH RENDERING
+// 3. MATHJAX CONFIGURATION
+window.MathJax = {
+    tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    },
+    options: {
+        processHtmlClass: 'tex2jax_process'
+    }
+};
+
+// 4. HELPER: DATA CLEANING & RENDERING
+// This function cleans the extra backslashes often added by JSON stringification
+function cleanMathString(str) {
+    if (!str) return "";
+    return str.replace(/\\\\\\\\/g, '\\').replace(/\\\\/g, '\\');
+}
+
 function refreshMath(element) {
     if (window.MathJax && window.MathJax.typesetPromise) {
-        // Small delay ensures the browser has finished painting the HTML
         setTimeout(() => {
             window.MathJax.typesetPromise([element]).catch((err) => console.log('MathJax Error:', err));
-        }, 150); 
+        }, 100);
     }
 }
 
-// 4. AUTHENTICATION (Logic Preserved)
+// 5. AUTHENTICATION
 window.handleLogin = async function() {
     const emailInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
@@ -30,7 +46,7 @@ window.handleLogin = async function() {
     const testSelect = document.getElementById('test-name-select');
     const testName = testSelect ? testSelect.value : "";
     if (!testName || testName === "Loading...") {
-        if(statusMsg) statusMsg.innerText = "Please select a test assignment.";
+        if(statusMsg) statusMsg.innerText = "Please select a test.";
         return;
     }
 
@@ -43,74 +59,108 @@ window.handleLogin = async function() {
     }
 };
 
-// 5. LOADING QUESTIONS WITH AUTO-DELIMITER
+// 6. LOADING QUESTIONS
 window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // Safety check: wrap in $ if missing to force MathJax to recognize it
-    const formatMath = (str) => {
-        if (!str) return "";
-        return str.includes('$') ? str : `$${str}$`;
-    };
+    // Clean data for rendering
+    const cleanQ = cleanMathString(qData.q);
+    const cleanOpts = qData.options.map(opt => cleanMathString(opt));
 
-    area.innerHTML = `<div class="tex2jax_process" style="padding: 20px 50px;">
-        <div style="margin-bottom: 20px;"><span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">Question ${currentIndex + 1}</span></div>
-        <div style="font-size: 1.25rem; margin-bottom: 30px; line-height: 1.6;">${formatMath(qData.q)}</div>
-        <div style="display: flex; flex-direction: column; gap: 12px;">
-            ${qData.options.map(opt => `
-                <label style="padding: 16px; border: 1.5px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#e2e8f0'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 10px; cursor: pointer;">
-                    <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> 
-                    <span style="margin-left: 10px;">${formatMath(opt)}</span>
-                </label>`).join('')}
-        </div>
-    </div>`;
+    area.innerHTML = `
+        <div class="tex2jax_process" style="padding: 20px 50px;">
+            <div style="margin-bottom: 20px;">
+                <span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">
+                    Question ${currentIndex + 1}
+                </span>
+            </div>
+            <div style="font-size: 1.3rem; margin-bottom: 25px; line-height: 1.6;">${cleanQ}</div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                ${cleanOpts.map((opt, i) => `
+                    <label style="padding: 15px; border: 1.5px solid ${userAnswers[currentIndex] === qData.options[i] ? '#0b4a8f' : '#e2e8f0'}; background: ${userAnswers[currentIndex] === qData.options[i] ? '#f0f7ff' : '#fff'}; border-radius: 10px; cursor: pointer;">
+                        <input type="radio" name="answer" value="${qData.options[i]}" onchange="saveAnswer(this.value); loadQuestion();" ${userAnswers[currentIndex] === qData.options[i] ? 'checked' : ''}> 
+                        <span style="margin-left: 10px;">${opt}</span>
+                    </label>
+                `).join('')}
+            </div>
+        </div>`;
     
     updateStats(); 
     updatePaletteUI();
-    refreshMath(area); //
+    refreshMath(area);
 };
 
-// 6. DETAILED SOLUTION (FIXING LINE BREAKS)
+// 7. DETAILED SOLUTION (FIXING STEPS & SYMBOLS)
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
-    const cleanSolution = q.solution.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n'); //
+    
+    // Process newlines specifically for the solution box
+    const cleanSolBody = cleanMathString(q.solution).replace(/\\n/g, '\n');
 
-    solTab.document.write(`<html><head><title>Solution</title>
-    <script>
-        window.MathJax = { 
-            tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']], displayMath: [['$$', '$$']] }
-        };
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    <style>
-        body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; color: #1e293b; }
-        .card { max-width: 850px; margin: auto; background: #ffffff; border-radius: 24px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        .sol-box { 
-            white-space: pre-wrap; /* Forces vertical step layout */
-            background: #f1f5f9; padding: 30px; border-radius: 16px; border-left: 6px solid #0b4a8f; margin: 25px 0; line-height: 1.8;
-        }
-    </style></head>
-    <body class="tex2jax_process">
-        <div class="card">
-            <h2>Solution for Question ${idx+1}</h2>
-            <div style="font-size: 1.3rem;">$${q.q}$</div>
-            <div class="sol-box">${cleanSolution}</div>
-            <div style="font-weight: bold; color: #16a34a; background: #f0fdf4; padding: 15px; border-radius: 10px;">Key: $${q.correct}$</div>
-        </div>
-    </body></html>`);
+    solTab.document.write(`
+        <html><head>
+        <script>window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']] } };</script>
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <style>
+            body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; color: #1e293b; }
+            .card { background: white; max-width: 850px; margin: auto; padding: 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+            .sol-box { 
+                white-space: pre-wrap; /* Critical for Step-by-Step Layout */
+                background: #f1f5f9; 
+                padding: 30px; 
+                border-radius: 12px; 
+                border-left: 6px solid #0b4a8f; 
+                margin: 25px 0; 
+                line-height: 1.8;
+                font-size: 1.1rem;
+            }
+        </style></head>
+        <body class="tex2jax_process">
+            <div class="card">
+                <h2 style="color: #0b4a8f;">Step-by-Step Solution</h2>
+                <div style="font-size: 1.3rem;">${cleanMathString(q.q)}</div>
+                <div class="sol-box">${cleanSolBody}</div>
+                <div style="font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 15px; border-radius: 10px; display: inline-block;">
+                    Correct Key: ${cleanMathString(q.correct)}
+                </div>
+            </div>
+        </body></html>
+    `);
     solTab.document.close();
 };
 
-// 7. REMAINING EXAM LOGIC
+// 8. DATA FETCHING & EXAM FLOW
+async function fetchQuestionsAndStart() {
+    const sub = document.getElementById('subject-select').value;
+    const testName = document.getElementById('test-name-select').value;
+    const { data } = await supabaseClient.from('questions_table')
+        .select('question_data').eq('subject', sub).eq('test_name', testName).maybeSingle();
+
+    if (data && data.question_data) {
+        activeBank = data.question_data;
+        userAnswers = new Array(activeBank.length).fill("");
+        confirmedAnswered = new Array(activeBank.length).fill(false);
+        markedForReview = new Array(activeBank.length).fill(false);
+        
+        document.getElementById('auth-container').style.display = 'none';
+        document.getElementById('exam-header').style.display = 'flex';
+        document.getElementById('quiz-container').style.display = 'flex';
+        
+        renderPalette();
+        loadQuestion();
+        startTimer();
+    }
+}
+
 window.saveAnswer = (val) => { userAnswers[currentIndex] = val; saveToCloud(); };
 window.saveAndNext = () => { if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; } if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); } saveToCloud(); };
 window.prevQuestion = () => { if (currentIndex > 0) { currentIndex--; loadQuestion(); saveToCloud(); } };
 window.markForReview = () => { markedForReview[currentIndex] = true; if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); } updatePaletteUI(); saveToCloud(); };
 window.clearResponse = () => { userAnswers[currentIndex] = ""; confirmedAnswered[currentIndex] = false; markedForReview[currentIndex] = false; loadQuestion(); saveToCloud(); };
 
-function startTimer() { timerActive = true; const interval = setInterval(() => { if (!timerActive) { clearInterval(interval); return; } timeLeft--; document.getElementById('time').innerText = \`\${Math.floor(timeLeft/60)}:\${(timeLeft%60).toString().padStart(2,'0')}\`; if (timeLeft <= 0) finalSubmission(); }, 1000); }
+function startTimer() { timerActive = true; const interval = setInterval(() => { if (!timerActive) { clearInterval(interval); return; } timeLeft--; document.getElementById('time').innerText = `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}`; if (timeLeft <= 0) finalSubmission(); }, 1000); }
 window.confirmSubmit = () => { if (confirm("Submit examination?")) finalSubmission(); };
 
 async function saveToCloud() { 
@@ -148,7 +198,7 @@ function showFinalResultOnly() {
     refreshMath(res);
 }
 
-function renderPalette() { document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `<div id="dot-\${i}" onclick="jumpTo(\${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;">\${i+1}</div>\`).join(''); }
+function renderPalette() { document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `<div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;">${i+1}</div>`).join(''); }
 window.jumpTo = (i) => { currentIndex = i; loadQuestion(); saveToCloud(); };
-function updatePaletteUI() { activeBank.forEach((_, i) => { const dot = document.getElementById(\`dot-\${i}\`); if (!dot) return; dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff"); dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333"; dot.style.border = (i === currentIndex) ? "2.5px solid #0b4a8f" : "1px solid #ccc"; }); }
+function updatePaletteUI() { activeBank.forEach((_, i) => { const dot = document.getElementById(`dot-${i}`); if (!dot) return; dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff"); dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333"; dot.style.border = (i === currentIndex) ? "2.5px solid #0b4a8f" : "1px solid #ccc"; }); }
 function updateStats() { const ans = confirmedAnswered.filter(x => x).length; document.getElementById('count-ans').innerText = ans; document.getElementById('count-not-ans').innerText = activeBank.length - ans; }
