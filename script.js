@@ -8,8 +8,6 @@ let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [],
 let currentUserEmail = ""; 
 
 // 3. AUTHENTICATION
-// UPDATED PREMIUM LOGIN SCREEN LOGIC
-// Note: This replaces your previous handleLogin and adds the UI injection
 window.handleLogin = async function() {
     const emailInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
@@ -18,69 +16,13 @@ window.handleLogin = async function() {
     const pass = passInput.value.trim();
     if (!email || !pass) { alert("Please enter both email and password."); return; }
     
-    // UI Feedback: Disable button during login
-    const loginBtn = document.querySelector('.premium-login-btn');
-    if(loginBtn) { loginBtn.innerText = "Authenticating..."; loginBtn.style.opacity = "0.7"; }
-
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-    
-    if (error) {
-        alert("Login failed: " + error.message);
-        if(loginBtn) { loginBtn.innerText = "Sign In"; loginBtn.style.opacity = "1"; }
-    } else if (data.user) { 
+    if (error) alert("Login failed: " + error.message);
+    else if (data.user) { 
         currentUserEmail = data.user.email; 
         await fetchQuestionsAndStart(); 
     }
 };
-
-// PRE-INJECTING THE PREMIUM LOOK (Run this on load)
-document.addEventListener('DOMContentLoaded', () => {
-    const loginScreen = document.getElementById('login-screen');
-    if (loginScreen) {
-        // Set Body style for login context
-        document.body.style.margin = "0";
-        document.body.style.background = "#f8fafc";
-        
-        loginScreen.style.cssText = `
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            width: 100vw;
-            background: radial-gradient(circle at top right, #e2e8f0 0%, #f8fafc 100%);
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-        `;
-
-        loginScreen.innerHTML = `
-            <div style="width: 100%; max-width: 400px; padding: 40px; background: white; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); border: 1px solid #e2e8f0;">
-                <div style="text-align: center; margin-bottom: 32px;">
-                    <div style="width: 60px; height: 60px; background: #0b4a8f; border-radius: 16px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
-                        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-                    </div>
-                    <h1 style="font-size: 24px; font-weight: 800; color: #0f172a; margin: 0;">Portal Login</h1>
-                    <p style="color: #64748b; font-size: 14px; margin-top: 8px;">Enter your credentials to access the exam</p>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 8px;">Email Address</label>
-                    <input type="email" id="login-email" placeholder="name@company.com" style="width: 100%; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 15px; outline: none; transition: border-color 0.2s; box-sizing: border-box;" onfocus="this.style.borderColor='#0b4a8f'">
-                </div>
-
-                <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-size: 13px; font-weight: 600; color: #475569; margin-bottom: 8px;">Password</label>
-                    <input type="password" id="login-pass" placeholder="••••••••" style="width: 100%; padding: 12px 16px; border: 1px solid #e2e8f0; border-radius: 12px; font-size: 15px; outline: none; transition: border-color 0.2s; box-sizing: border-box;" onfocus="this.style.borderColor='#0b4a8f'">
-                </div>
-
-                <button class="premium-login-btn" onclick="handleLogin()" style="width: 100%; background: #0b4a8f; color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(11, 74, 143, 0.2);" onmouseover="this.style.transform='translateY(-1px)'; this.style.boxShadow='0 10px 15px -3px rgba(11, 74, 143, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 6px -1px rgba(11, 74, 143, 0.2)'">
-                    Sign In
-                </button>
-                
-                <p style="text-align: center; font-size: 13px; color: #94a3b8; margin-top: 24px;">Secured by Supabase Identity</p>
-            </div>
-        `;
-    }
-    updateTestNames();
-});
 
 // 4. DYNAMIC DATA FETCHING
 window.updateTestNames = async function() {
