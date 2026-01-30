@@ -138,14 +138,93 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
+// PREMIUM SOLUTIONS PAGE DESIGN
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
-    solTab.document.write(`<html><head><title>Solution</title><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><style>body{font-family:sans-serif;padding:30px;line-height:1.6;} .card{border:1px solid #eee;padding:20px;border-radius:10px;box-shadow:0 5px 15px rgba(0,0,0,0.05);}</style></head><body><div class="card"><h2>Solution for Q${idx+1}</h2><p>${q.q}</p><hr><p>${q.solution}</p><h4 style="color:green">Correct Answer: ${q.correct}</h4></div></body></html>`);
+    solTab.document.write(`
+        <html>
+        <head>
+            <title>Step-by-Step Solution</title>
+            <script>
+                window.MathJax = {
+                    tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']] },
+                    svg: { fontCache: 'global' }
+                };
+            </script>
+            <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+                body { 
+                    font-family: 'Inter', sans-serif; 
+                    background: #020617; 
+                    color: #f8fafc; 
+                    margin: 0; 
+                    padding: 40px 20px; 
+                    line-height: 1.6;
+                }
+                .glass-card {
+                    max-width: 800px;
+                    margin: 0 auto;
+                    background: rgba(15, 23, 42, 0.8);
+                    backdrop-filter: blur(12px);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    border-radius: 24px;
+                    padding: 40px;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                }
+                .header {
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+                    padding-bottom: 20px;
+                    margin-bottom: 30px;
+                }
+                .badge {
+                    background: #38bdf8;
+                    color: #020617;
+                    padding: 4px 12px;
+                    border-radius: 6px;
+                    font-weight: 800;
+                    font-size: 0.8rem;
+                    text-transform: uppercase;
+                }
+                .q-text { font-size: 1.25rem; font-weight: 600; margin: 20px 0; color: #e2e8f0; }
+                .sol-content { 
+                    background: rgba(255, 255, 255, 0.03); 
+                    padding: 25px; 
+                    border-radius: 16px; 
+                    border-left: 4px solid #38bdf8;
+                    font-size: 1.1rem;
+                    color: #cbd5e1;
+                }
+                .correct-ans {
+                    margin-top: 30px;
+                    font-size: 1.2rem;
+                    font-weight: 800;
+                    color: #4ade80;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="glass-card">
+                <div class="header">
+                    <span class="badge">Question ${idx + 1} Analysis</span>
+                    <div class="q-text">${q.q}</div>
+                </div>
+                <div style="font-size: 0.8rem; text-transform: uppercase; color: #64748b; margin-bottom: 10px; letter-spacing: 1px;">Detailed Explanation</div>
+                <div class="sol-content">${q.solution}</div>
+                <div class="correct-ans">
+                    <span style="color: #64748b; font-size: 0.9rem; font-weight: 400;">Final Answer:</span> ${q.correct}
+                </div>
+            </div>
+        </body>
+        </html>
+    `);
     solTab.document.close();
 };
 
-// PREMIUM MODERN SUMMARY VIEW (ONLY CHANGE ALLOWED)
 function showFinalResultOnly() {
     timerActive = false; 
     let score = 0;
@@ -160,7 +239,14 @@ function showFinalResultOnly() {
                 <td style="padding:16px; text-align:left; color:#f8fafc; font-size:0.95rem;">${q.q}</td>
                 <td style="padding:16px;"><span style="padding:6px 14px; border-radius:30px; font-size:0.85rem; font-weight:700; background:${isCorrect ? '#22c55e33' : '#ef444433'}; color:${isCorrect ? '#4ade80' : '#f87171'}; border:1px solid ${isCorrect ? '#4ade8055' : '#f8717155'};">${userAnswers[i] || 'N/A'}</span></td>
                 <td style="padding:16px; font-weight:bold; color:#38bdf8;">${q.correct}</td>
-                <td style="padding:16px;"><button onclick="openDetailedSolution(${i})" style="background:rgba(56, 189, 248, 0.1); border:1px solid #38bdf8; color:#38bdf8; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:600; transition:0.3s;" onmouseover="this.style.background='#38bdf8'; this.style.color='#fff'">Solution</button></td>
+                <td style="padding:16px;">
+                    <button onclick="openDetailedSolution(${i})" 
+                        style="background:rgba(56, 189, 248, 0.1); border:1px solid #38bdf8; color:#38bdf8; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:600; transition:0.3s;" 
+                        onmouseover="this.style.background='#38bdf8'; this.style.color='#020617'; this.style.boxShadow='0 0 15px rgba(56,189,248,0.4)'" 
+                        onmouseout="this.style.background='rgba(56,189,248,0.1)'; this.style.color='#38bdf8'; this.style.boxShadow='none'">
+                        Solution
+                    </button>
+                </td>
             </tr>`;
     }).join('');
 
@@ -168,13 +254,11 @@ function showFinalResultOnly() {
     document.getElementById('exam-header').style.display = 'none';
     document.getElementById('result-screen').style.display = 'block';
     
-    // Applying Navy Blue Glassmorphism Theme
     document.body.style.background = "#020617";
     document.getElementById('result-screen').innerHTML = `
         <div style="max-width: 1200px; margin: 40px auto; padding: 20px; font-family: 'Inter', system-ui, sans-serif;">
             <div style="background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 50px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); margin-bottom: 40px;">
                 <h1 style="color:#f8fafc; font-size: 2.5rem; margin-bottom: 10px; font-weight: 800; letter-spacing: -1px;">Assessment Result</h1>
-                <p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 30px;">Great job completing the exam. Here is your detailed analysis.</p>
                 <div style="display:flex; justify-content:center; gap:60px;">
                     <div><div style="font-size:4rem; font-weight:900; color:#38bdf8; line-height:1;">${score}</div><div style="color:#64748b; font-size:0.8rem; text-transform:uppercase; letter-spacing:2px; margin-top:10px;">Score / ${total}</div></div>
                     <div style="width:1px; background:rgba(255,255,255,0.1);"></div>
@@ -198,7 +282,7 @@ function showFinalResultOnly() {
             </div>
             
             <div style="text-align:center; margin-top:50px;">
-                <button onclick="location.reload()" style="background: #38bdf8; color: #020617; border: none; padding: 18px 45px; border-radius: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 20px rgba(56, 189, 248, 0.3)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">Exit to Portal</button>
+                <button onclick="location.reload()" style="background: #38bdf8; color: #020617; border: none; padding: 18px 45px; border-radius: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: 0.2s;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 10px 20px rgba(56, 189, 248, 0.3)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='none'">Exit to Portal</button>
             </div>
         </div>`;
     if (window.MathJax) MathJax.typesetPromise();
@@ -224,7 +308,7 @@ function updatePaletteUI() {
         if (!dot) return;
         dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff");
         dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333";
-        dot.style.border = (i === currentIndex) ? "2px solid #0b4a8f" : "1px solid #ccc";
+        dot.style.border = (i === currentIndex) ? "2.5px solid #0b4a8f" : "1px solid #ccc";
     });
 }
 function updateStats() {
