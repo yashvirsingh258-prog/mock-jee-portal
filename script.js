@@ -36,6 +36,7 @@ window.handleLogin = async function() {
         
         const sub = document.getElementById('subject-select').value;
         const testName = document.getElementById('test-name-select').value;
+        
         const { data: progress } = await supabaseClient.from('student_progress')
             .select('is_finished')
             .eq('username', currentUserEmail)
@@ -81,31 +82,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="auth-status-msg" style="margin-top: 20px; color: #e11d48; font-size: 13px; font-weight: 600; text-align: center; min-height: 20px;"></div>
             </div>`;
         
-        // Populate the dropdown immediately after the HTML is injected
         updateTestNames();
     }
 });
 
-// 4. DATA LOGIC - Fixed to ensure dropdown population
+// 4. DATA LOGIC - FIXED TEST NAME FETCHING
 window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
     if (!testSelect) return;
     
+    // Selecting all test_names for the chosen subject
     const { data, error } = await supabaseClient
         .from('questions_table')
         .select('test_name')
         .eq('subject', sub);
     
     if (error) {
-        console.error("Error fetching tests:", error);
         testSelect.innerHTML = `<option>Error loading tests</option>`;
     } else if (data && data.length > 0) {
-        // Use a Set to ensure unique test names in the dropdown
+        // Filter unique test names just in case there are duplicates in the table
         const uniqueTests = [...new Set(data.map(item => item.test_name))];
         testSelect.innerHTML = uniqueTests.map(name => `<option value="${name}">${name}</option>`).join('');
     } else {
-        testSelect.innerHTML = `<option>No tests found</option>`;
+        testSelect.innerHTML = `<option>No test found</option>`;
     }
 };
 
