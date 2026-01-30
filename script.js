@@ -11,6 +11,8 @@ let currentUserEmail = "";
 window.handleLogin = async function() {
     const emailInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
+    const statusMsg = document.getElementById('auth-status-msg');
+    
     if (!emailInput || !passInput) return;
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
@@ -18,14 +20,32 @@ window.handleLogin = async function() {
     
     const loginBtn = document.querySelector('.login-submit-btn');
     if(loginBtn) loginBtn.innerText = "AUTHENTICATING..."; 
+    if(statusMsg) statusMsg.innerText = ""; // Clear previous messages
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+    
     if (error) {
         alert("Login failed: " + error.message);
         if(loginBtn) loginBtn.innerText = "ENTER PORTAL";
     } else if (data.user) { 
-        currentUserEmail = data.user.email; 
-        await fetchQuestionsAndStart(); 
+        currentUserEmail = data.user.email;
+        
+        // Check if test is already finished before starting
+        const sub = document.getElementById('subject-select').value;
+        const testName = document.getElementById('test-name-select').value;
+        const { data: progress } = await supabaseClient.from('student_progress')
+            .select('is_finished')
+            .eq('username', currentUserEmail)
+            .eq('subject', sub)
+            .eq('test_name', testName)
+            .maybeSingle();
+
+        if (progress && progress.is_finished) {
+            if(loginBtn) loginBtn.innerText = "ENTER PORTAL";
+            if(statusMsg) statusMsg.innerText = "Test submission already happened. Select another test.";
+        } else {
+            await fetchQuestionsAndStart(); 
+        }
     }
 };
 
@@ -53,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <select id="test-name-select" style="width: 100%; padding: 10px 0; border: none; border-bottom: 1.5px solid #e2e8f0; background: transparent; font-size: 15px; font-weight: 600; outline: none; cursor: pointer;"></select>
                 </div>
                 <button class="login-submit-btn" onclick="handleLogin()" style="width: 100%; background: #0b4a8f; color: white; border: none; padding: 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 2px; transition: 0.3s;">ENTER PORTAL</button>
+                <div id="auth-status-msg" style="margin-top: 20px; color: #e11d48; font-size: 13px; font-weight: 600; text-align: center; min-height: 20px;"></div>
             </div>`;
     }
     updateTestNames();
@@ -82,7 +103,10 @@ window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
     const { data } = await supabaseClient.from('student_progress').select('*').eq('username', currentUserEmail).eq('subject', sub).eq('test_name', testName).maybeSingle();
+    
+    // Safety check: if they somehow bypassed login and are finished, show results
     if (data && data.is_finished) { userAnswers = data.user_answers; showFinalResultOnly(); return; }
+    
     if (data && confirm("Resume progress?")) {
         currentIndex = data.current_index; userAnswers = data.user_answers;
         confirmedAnswered = data.confirmed_answered; markedForReview = data.marked_for_review; timeLeft = data.time_left;
