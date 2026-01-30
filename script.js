@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTestNames();
 });
 
-// 4. DATA LOGIC (UNCHANGED)
+// 4. DATA LOGIC
 window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
@@ -77,7 +77,7 @@ async function fetchQuestionsAndStart() {
     startExam();
 }
 
-// 5. EXAM LOGIC (UNCHANGED)
+// 5. EXAM LOGIC
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
@@ -122,7 +122,7 @@ function startTimer() { timerActive = true; const interval = setInterval(() => {
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 async function saveToCloud() { if (!currentUserEmail) return; const sub = document.getElementById('subject-select').value; const testName = document.getElementById('test-name-select').value; await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, subject: sub, test_name: testName, current_index: currentIndex, user_answers: [...userAnswers], confirmed_answered: [...confirmedAnswered], marked_for_review: [...markedForReview], time_left: timeLeft, is_finished: false }, { onConflict: 'username, subject, test_name' }); }
 
-// 6. PREMIUM SOLUTIONS & SUMMARY (RESTORED LOOK)
+// 6. PREMIUM SOLUTIONS & SUMMARY
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
@@ -166,6 +166,8 @@ function showFinalResultOnly() {
         </tr>`;
     }).join('');
 
+    const percentage = ((score / total) * 100).toFixed(0);
+
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('exam-header').style.display = 'none';
     document.getElementById('result-screen').style.display = 'block';
@@ -174,7 +176,8 @@ function showFinalResultOnly() {
         <div style="max-width: 1200px; margin: 40px auto; font-family: 'Inter', sans-serif;">
             <div style="background: #0b4a8f; color: white; padding: 60px; border-radius: 24px; text-align: center; margin-bottom: 40px;">
                 <h1 style="font-size: 2.5rem; margin-bottom: 15px;">Assessment Report</h1>
-                <div style="font-size: 4rem; font-weight: 900;">${score} / ${total}</div>
+                <div style="font-size: 4rem; font-weight: 900; line-height: 1;">${score} / ${total}</div>
+                <div style="font-size: 1.5rem; font-weight: 600; opacity: 0.9; margin-top: 10px;">Accuracy: ${percentage}%</div>
             </div>
             <table style="width:100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
                 <thead style="background: #f8fafc;"><tr><th style="padding:20px;">#</th><th style="text-align:left;">Question</th><th>Your Ans</th><th>Key</th><th>Review</th></tr></thead>
