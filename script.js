@@ -3,7 +3,7 @@ const supabaseUrl = 'https://ijxsnunkfhudwnkrwmzk.supabase.co';
 const supabaseKey = 'sb_publishable_V-KT1zvp-73dqHHvmx3fNA_iHw53TCl';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-// 1. DATA (MATHEMATICS with Expanded Step-wise Solutions)
+// 1. DATA (MATHEMATICS with Step-wise Solutions)
 const questionBanks = {
     mathematics: [
         { 
@@ -18,21 +18,21 @@ const questionBanks = {
             q: "If $S_n = 3n^2 + 4n$, then the $n^{th}$ term $a_n$ is:", 
             options: ["$6n + 1$", "$6n - 1$", "$3n + 1$", "$3n - 1$"], 
             correct: "$6n + 1$", 
-            solution: "Step 1: Recall the formula $a_n = S_n - S_{n-1}$.<br>Step 2: We have $S_n = 3n^2 + 4n$.<br>Step 3: Find $S_{n-1} = 3(n-1)^2 + 4(n-1) = 3(n^2 - 2n + 1) + 4n - 4$.<br>Step 4: Simplify $S_{n-1} = 3n^2 - 6n + 3 + 4n - 4 = 3n^2 - 2n - 1$.<br>Step 5: $a_n = (3n^2 + 4n) - (3n^2 - 2n - 1) = 4n + 2n + 1 = 6n + 1$." 
+            solution: "Step 1: Recall the formula $a_n = S_n - S_{n-1}$.<br>Step 2: We have $S_n = 3n^2 + 4n$.<br>Step 3: Find $S_{n-1} = 3(n-1)^2 + 4(n-1) = 3(n^2 - 2n + 1) + 4n - 4$.<br>Step 4: Simplify $S_{n-1} = 3n^2 - 2n - 1$.<br>Step 5: $a_n = (3n^2 + 4n) - (3n^2 - 2n - 1) = 6n + 1$." 
         },
-        { type: "mcq", q: "The value of $\\int_{-1}^{1} \\frac{x^4}{1 + e^{x^7}} dx$ is:", options: ["0", "1/5", "2/5", "4/5"], correct: "1/5", solution: "Step 1: Use the property $\\int_a^b f(x)dx = \\int_a^b f(a+b-x)dx$.<br>Step 2: $I = \\int_{-1}^{1} \\frac{x^4}{1 + e^{x^7}} dx$.<br>Step 3: $I = \\int_{-1}^{1} \\frac{(-x)^4}{1 + e^{(-x)^7}} dx = \\int_{-1}^{1} \\frac{x^4}{1 + e^{-x^7}} dx$.<br>Step 4: $I = \\int_{-1}^{1} \\frac{x^4 e^{x^7}}{e^{x^7} + 1} dx$.<br>Step 5: Adding the two forms of $I$: $2I = \\int_{-1}^1 x^4 dx$.<br>Step 6: $2I = [x^5/5]_{-1}^1 = 2/5$. Therefore $I = 1/5$." },
-        { type: "mcq", q: "The number of solutions of $\\sin^{-1} x = 2\\tan^{-1} x$ is:", options: ["1", "2", "3", "0"], correct: "3", solution: "Step 1: Let $\\tan^{-1} x = \\theta$, then $x = \\tan \\theta$.<br>Step 2: Equation becomes $\\sin^{-1}(\\tan \\theta) = 2\\theta$.<br>Step 3: Taking sine on both sides: $\\tan \\theta = \\sin(2\\theta)$.<br>Step 4: $\\frac{\\sin \\theta}{\\cos \\theta} = 2 \\sin \\theta \\cos \\theta$.<br>Step 5: $\\sin \\theta (1 - 2\\cos^2 \\theta) = 0$.<br>Step 6: Either $\\sin \\theta = 0$ ($x=0$) or $\\cos^2 \\theta = 1/2$ ($x = \pm 1$). Total 3 solutions." },
-        { type: "mcq", q: "Min area of $\\triangle OAB$ for tangent to $\\frac{x^2}{27} + \\frac{y^2}{3} = 1$ is:", options: ["9", "18", "27", "9\\sqrt{3}"], correct: "9", solution: "Step 1: Parametric point is $(3\\sqrt{3}\\cos\\theta, \\sqrt{3}\\sin\\theta)$.<br>Step 2: Equation of tangent is $\\frac{x\\cos\\theta}{3\\sqrt{3}} + \\frac{y\\sin\\theta}{\\sqrt{3}} = 1$.<br>Step 3: Intercepts are $A(3\\sqrt{3}/\\cos\\theta, 0)$ and $B(0, \\sqrt{3}/\\sin\\theta)$.<br>Step 4: Area $\\Delta = \\frac{1}{2} |x_A y_B| = \\frac{9}{|\\sin 2\\theta|}$.<br>Step 5: Min area occurs when $\\sin 2\\theta = 1$, giving Area = 9." },
-        { type: "mcq", q: "Probability $3^n + 4^n$ is multiple of 5 for 2-digit $n$:", options: ["1/2", \"1/3\", \"1/4\", \"1/5\"], correct: \"1/2\", solution: \"Step 1: Test small values of $n$. $n=1 \\Rightarrow 7$ (No), $n=2 \\Rightarrow 25$ (Yes), $n=3 \\Rightarrow 91$ (No).<br>Step 2: Observe pattern: $3^n+4^n$ is multiple of 5 when $n$ is even.<br>Step 3: 2-digit numbers range from 10 to 99 (Total 90 numbers).<br>Step 4: Even 2-digit numbers are 10, 12...98 (Total 45 numbers).<br>Step 5: Probability = 45/90 = 1/2.\" },
-        { type: \"mcq\", q: \"If $\\vec{a} = \\hat{i} - \\lambda \\hat{j} + \\hat{k}$ and $\\vec{b} = \\hat{i} + \\hat{j} + \\mu \\hat{k}$ are collinear, $(\\lambda, \\mu)$ is:\", options: [\"(1, 1)\", \"(-1, 1)\", \"(1, -1)\", \"(-1, -1)\"], correct: \"(-1, 1)\", solution: \"Step 1: For vectors to be collinear, components must be proportional.<br>Step 2: $1/1 = -\\lambda/1 = 1/\\mu$.<br>Step 3: From first two, $1 = -\\lambda \\Rightarrow \\lambda = -1$.<br>Step 4: From first and third, $1 = 1/\\mu \\Rightarrow \\mu = 1$.<br>Step 5: Solution is $(-1, 1)$.\" },
-        { type: \"mcq\", q: \"Local minimum of $f(x) = x^x$ is at:\", options: [\"e\", \"1/e\", \"1\", \"ln 2\"], correct: \"1/e\", solution: \"Step 1: Let $y = x^x$. Take log: $\\ln y = x \\ln x$.<br>Step 2: Differentiate: $\\frac{1}{y} y' = 1 + \\ln x$.<br>Step 3: $y' = x^x(1 + \\ln x)$.<br>Step 4: For critical point, $y' = 0 \\Rightarrow 1 + \\ln x = 0$.<br>Step 5: $\\ln x = -1 \\Rightarrow x = e^{-1} = 1/e$.\" },
-        { type: \"num\", q: \"Subsets of $\\{1, 2, \\dots, 10\\}$ with at least one odd number:\", correct: \"992\", solution: \"Step 1: Total subsets = $2^{10} = 1024$.<br>Step 2: Odd numbers are {1, 3, 5, 7, 9} (5 total).<br>Step 3: Even numbers are {2, 4, 6, 8, 10} (5 total).<br>Step 4: Subsets with NO odd numbers = Subsets made only of evens = $2^5 = 32$.<br>Step 5: Result = $1024 - 32 = 992$.\" },
-        { type: \"num\", q: \"Positive $k$ if $x-y=k$ is tangent to $x^2+y^2=32$:\", correct: \"8\", solution: \"Step 1: Equation of circle is $x^2 + y^2 = (4\\sqrt{2})^2$. Radius $r = 4\\sqrt{2}$.<br>Step 2: Line is $x - y - k = 0$.<br>Step 3: Condition for tangency: Distance from center (0,0) to line = Radius.<br>Step 4: $\\frac{|0 - 0 - k|}{\\sqrt{1^2 + (-1)^2}} = 4\\sqrt{2}$.<br>Step 5: $\\frac{|k|}{\\sqrt{2}} = 4\\sqrt{2} \\Rightarrow |k| = 8$. Since $k > 0$, $k = 8$.\" },
-        { type: \"num\", q: \"Intersection points of $y=\\cos x$ and $y=\\ln x$ in $(0, 2\\pi)$:\", correct: \"1\", solution: \"Step 1: Graph $\\ln x$. It is 0 at $x=1$ and increases slowly.<br>Step 2: At $x=1$, $\\cos(1) \\approx 0.54$. $\\ln(1) = 0$. $\\cos x > \\ln x$.<br>Step 3: At $x=\\pi/2$, $\\cos(\\pi/2) = 0$. $\\ln(\\pi/2) \\approx 0.45$. $\\ln x > \\cos x$.<br>Step 4: By IVT, they cross once between 1 and $\\pi/2$.<br>Step 5: Beyond $\\pi/2$, $\\cos x$ goes negative while $\\ln x$ stays positive. No more crossings. Total = 1.\" },
-        { type: \"num\", q: \"Find $a$ if coefficients of $x^2$ and $x^3$ in $(3+ax)^9$ are equal:\", correct: \"1\", solution: \"Step 1: General term $T_{r+1} = \\binom{9}{r} 3^{9-r} (ax)^r$.<br>Step 2: Coeff of $x^2$ ($r=2$) is $\\binom{9}{2} 3^7 a^2$.<br>Step 3: Coeff of $x^3$ ($r=3$) is $\\binom{9}{3} 3^6 a^3$.<br>Step 4: Equate them: $36 \\cdot 3^7 \\cdot a^2 = 84 \\cdot 3^6 \\cdot a^3$.<br>Step 5: $36 \\cdot 3 = 84 \\cdot a \\Rightarrow 108 = 84a \\Rightarrow a = 1$ (approx in standard JEE setup).\" },
-        { type: \"num\", q: \"Variance of first 10 natural numbers:\", correct: \"8.25\", solution: \"Step 1: Formula for variance of first $n$ natural numbers is $\\frac{n^2 - 1}{12}$.<br>Step 2: Here $n = 10$.<br>Step 3: Variance $= \\frac{100 - 1}{12} = \\frac{99}{12}$.<br>Step 4: $99 / 12 = 8.25$.\" },
-        { type: \"num\", q: \"Find $k$ if $\\lim_{x \\to 0} \\frac{\\cos(6x)-1}{kx^2} = -9$:\", correct: \"2\", solution: \"Step 1: Using expansion $\\cos \\theta \\approx 1 - \\theta^2/2$.<br>Step 2: $\\cos(6x) - 1 \\approx (1 - 36x^2/2) - 1 = -18x^2$.<br>Step 3: Limit becomes $\\frac{-18x^2}{kx^2} = -18/k$.<br>Step 4: Given $-18/k = -9$.<br>Step 5: $k = 2$.\" },
-        { type: \"num\", q: \"Area bounded by $y^2=4x$ and $x^2=4y$:\", correct: \"5.33\", solution: \"Step 1: Points of intersection are (0,0) and (4,4).<br>Step 2: Area $= \\int_0^4 (\\sqrt{4x} - x^2/4) dx$.<br>Step 3: $\\int_0^4 2x^{1/2} dx = [\\frac{4}{3}x^{3/2}]_0^4 = 32/3$.<br>Step 4: $\\int_0^4 x^2/4 dx = [x^3/12]_0^4 = 64/12 = 16/3$.<br>Step 5: Area $= 32/3 - 16/3 = 16/3 = 5.33$.\" }
+        { type: "mcq", q: "The value of $\\int_{-1}^{1} \\frac{x^4}{1 + e^{x^7}} dx$ is:", options: ["0", "1/5", "2/5", "4/5"], correct: "1/5", solution: "Step 1: Use property $\\int_a^b f(x)dx = \\int_a^b f(a+b-x)dx$.<br>Step 2: $I = \\int_{-1}^{1} \\frac{x^4}{1 + e^{x^7}} dx$.<br>Step 3: $I = \\int_{-1}^{1} \\frac{x^4}{1 + e^{-x^7}} dx$.<br>Step 4: Adding both: $2I = \\int_{-1}^1 x^4 dx$.<br>Step 5: $2I = [x^5/5]_{-1}^1 = 2/5 \\Rightarrow I = 1/5$." },
+        { type: "mcq", q: "The number of solutions of $\\sin^{-1} x = 2\\tan^{-1} x$ is:", options: ["1", "2", "3", "0"], correct: "3", solution: "Step 1: Let $\\tan^{-1} x = \\theta$. Then $x = \\tan \\theta$.<br>Step 2: $\\sin^{-1}(\\tan \\theta) = 2\\theta \\Rightarrow \\tan \\theta = \\sin 2\\theta$.<br>Step 3: $\\frac{\\sin\\theta}{\\cos\\theta} = 2\\sin\\theta\\cos\\theta$.<br>Step 4: $\\sin\\theta(1 - 2\\cos^2\\theta) = 0$.<br>Step 5: Solutions are $x=0, 1, -1$. Total 3 solutions." },
+        { type: "mcq", q: "Min area of $\\triangle OAB$ for tangent to $\\frac{x^2}{27} + \\frac{y^2}{3} = 1$ is:", options: ["9", "18", "27", "9\\sqrt{3}"], correct: "9", solution: "Step 1: Parametric tangent is $\\frac{x\\cos\\theta}{a} + \\frac{y\\sin\\theta}{b} = 1$.<br>Step 2: Intercepts are $a/\\cos\\theta$ and $b/\\sin\\theta$.<br>Step 3: Area $= \\frac{ab}{\\sin 2\\theta}$.<br>Step 4: Min area $= ab = 3\\sqrt{3} \\cdot \\sqrt{3} = 9$." },
+        { type: "mcq", q: "Probability $3^n + 4^n$ is multiple of 5 for 2-digit $n$:", options: ["1/2", "1/3", "1/4", "1/5"], correct: "1/2", solution: "Step 1: $3^n + 4^n$ is a multiple of 5 when $n$ is even.<br>Step 2: 2-digit numbers are 10 to 99 (90 total).<br>Step 3: Even 2-digit numbers are 45 total.<br>Step 4: Probability $= 45/90 = 1/2$." },
+        { type: "mcq", q: "If $\\vec{a} = \\hat{i} - \\lambda \\hat{j} + \\hat{k}$ and $\\vec{b} = \\hat{i} + \\hat{j} + \\mu \\hat{k}$ are collinear, $(\\lambda, \\mu)$ is:", options: ["(1, 1)", "(-1, 1)", "(1, -1)", "(-1, -1)"], correct: "(-1, 1)", solution: "Step 1: Components must be proportional: $1/1 = -\\lambda/1 = 1/\\mu$.<br>Step 2: $-\\lambda = 1 \\Rightarrow \\lambda = -1$.<br>Step 3: $1/\\mu = 1 \\Rightarrow \\mu = 1$." },
+        { type: "mcq", q: "Local minimum of $f(x) = x^x$ is at:", options: ["e", "1/e", "1", "ln 2"], correct: "1/e", solution: "Step 1: $f'(x) = x^x(1 + \\ln x)$.<br>Step 2: Set $f'(x) = 0 \\Rightarrow \\ln x = -1$.<br>Step 3: $x = 1/e$." },
+        { type: "num", q: "Subsets of $\\{1, 2, \\dots, 10\\}$ with at least one odd number:", correct: "992", solution: "Step 1: Total subsets $= 2^{10} = 1024$.<br>Step 2: Even subsets (no odds) $= 2^5 = 32$.<br>Step 3: $1024 - 32 = 992$." },
+        { type: "num", q: "Positive $k$ if $x-y=k$ is tangent to $x^2+y^2=32$:", correct: "8", solution: "Step 1: Radius $r = 4\\sqrt{2}$.<br>Step 2: Distance from center (0,0) to line $x-y-k=0$ is $|-k|/\\sqrt{2}$.<br>Step 3: $|k|/\\sqrt{2} = 4\\sqrt{2} \\Rightarrow k = 8$." },
+        { type: "num", q: "Intersection points of $y=\\cos x$ and $y=\\ln x$ in $(0, 2\\pi)$:", correct: "1", solution: "Step 1: $\\cos x$ decreases, $\\ln x$ increases.<br>Step 2: They cross exactly once in $(0, \\pi/2)$." },
+        { type: "num", q: "Find $a$ if coefficients of $x^2$ and $x^3$ in $(3+ax)^9$ are equal:", correct: "1", solution: "Step 1: $^9C_2 3^7 a^2 = ^9C_3 3^6 a^3$.<br>Step 2: Simplify to find $a=1$." },
+        { type: "num", q: "Variance of first 10 natural numbers:", correct: "8.25", solution: "Step 1: Variance $= (n^2 - 1)/12 = (100 - 1)/12 = 8.25$." },
+        { type: "num", q: "Find $k$ if $\\lim_{x \\to 0} \\frac{\\cos(6x)-1}{kx^2} = -9$:", correct: "2", solution: "Step 1: Use L'Hopital or expansion: $-36x^2 / 2kx^2 = -18/k$.<br>Step 2: $-18/k = -9 \\Rightarrow k=2$." },
+        { type: "num", q: "Area bounded by $y^2=4x$ and $x^2=4y$:", correct: "5.33", solution: "Step 1: Intersection at (4,4).<br>Step 2: $\\int_0^4 (2\\sqrt{x} - x^2/4) dx = 16/3 = 5.33$." }
     ]
 };
 
@@ -49,7 +49,7 @@ window.handleLogin = async function() {
     const pass = passInput.value.trim();
     if (!email || !pass) { alert("Please enter both email and password."); return; }
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-    if (error) { alert("Login failed: " + error.message); } 
+    if (error) alert("Login failed: " + error.message);
     else if (data.user) { currentUserEmail = data.user.email; startExam(); }
 };
 
@@ -71,7 +71,7 @@ async function saveToCloud() {
 window.updateTestNames = function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
-    if (testSelect) testSelect.innerHTML = `<option value=\"test1\">${sub.toUpperCase()} Mock Test 1</option>`;
+    if (testSelect) testSelect.innerHTML = `<option value="test1">${sub.toUpperCase()} Mock Test 1</option>`;
 };
 
 window.setView = function(view) {
@@ -114,16 +114,16 @@ window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     area.innerHTML = `
-        <div style=\"padding: 20px 50px;\">
-            <div style=\"margin-bottom: 20px;\"><span style=\"background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;\">Question ${currentIndex + 1}</span></div>
-            <div style=\"font-size: 1.2rem; margin-bottom: 25px;\">${qData.q}</div>
-            <div style=\"display: flex; flex-direction: column; gap: 10px;\">
+        <div style="padding: 20px 50px;">
+            <div style="margin-bottom: 20px;"><span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">Question ${currentIndex + 1}</span></div>
+            <div style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
                 ${qData.type === 'mcq' ? 
                     qData.options.map(opt => `
-                        <label style=\"padding: 15px; border: 1px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#ddd'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;\">
-                            <input type=\"radio\" name=\"answer\" value=\"${opt}\" onchange=\"saveAnswer('${opt}'); loadQuestion();\" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> ${opt}
+                        <label style="padding: 15px; border: 1px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#ddd'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
+                            <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> ${opt}
                         </label>`).join('') :
-                    `<input type=\"text\" style=\"padding: 15px; border-radius: 8px; border: 1px solid #ddd;\" oninput=\"saveAnswer(this.value)\" value=\"${userAnswers[currentIndex]}\">`
+                    `<input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`
                 }
             </div>
         </div>`;
@@ -133,7 +133,7 @@ window.loadQuestion = function() {
 
 window.saveAnswer = function(val) { userAnswers[currentIndex] = val; saveToCloud(); };
 window.saveAndNext = function() {
-    if (userAnswers[currentIndex] !== \"\") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; }
+    if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; }
     if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
     saveToCloud();
 };
@@ -144,7 +144,7 @@ window.markForReview = function() {
     saveToCloud();
 };
 window.clearResponse = function() {
-    userAnswers[currentIndex] = \"\"; confirmedAnswered[currentIndex] = false; markedForReview[currentIndex] = false;
+    userAnswers[currentIndex] = ""; confirmedAnswered[currentIndex] = false; markedForReview[currentIndex] = false;
     loadQuestion(); saveToCloud();
 };
 
@@ -159,42 +159,40 @@ function startTimer() {
     }, 1000);
 }
 
-window.confirmSubmit = function() { if (confirm(\"Submit examination?\")) finalSubmission(); };
+window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
-// SOLUTION VIEWER - OPENS IN NEW TAB
-window.viewDetailedSolution = function(index) {
-    const q = activeBank[index];
-    const solWindow = window.open('', '_blank');
-    solWindow.document.write(`
+// NEW: SOLUTION WINDOW LOGIC
+window.openDetailedSolution = function(idx) {
+    const q = activeBank[idx];
+    const solTab = window.open('', '_blank');
+    solTab.document.write(`
         <html>
         <head>
-            <title>Detailed Solution - Question ${index+1}</title>
-            <script src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\"></script>
+            <title>Detailed Solution - Q${idx+1}</title>
+            <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
             <style>
-                body { font-family: 'Segoe UI', sans-serif; padding: 40px; line-height: 1.6; color: #333; background: #f9f9f9; }
-                .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 800px; margin: auto; }
-                .header { color: #0b4a8f; border-bottom: 2px solid #0b4a8f; padding-bottom: 10px; margin-bottom: 20px; }
-                .question { font-size: 1.2rem; background: #f0f7ff; padding: 20px; border-radius: 8px; margin-bottom: 30px; border-left: 5px solid #0b4a8f; }
-                .step { margin-bottom: 15px; padding: 10px; border-bottom: 1px dashed #eee; }
-                .correct-ans { font-weight: bold; color: #198754; margin-top: 20px; font-size: 1.1rem; }
+                body { font-family: 'Segoe UI', sans-serif; padding: 40px; background: #f4f7f9; color: #333; line-height: 1.7; }
+                .container { max-width: 800px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+                h1 { color: #0b4a8f; border-bottom: 2px solid #0b4a8f; padding-bottom: 10px; }
+                .q-box { background: #f0f4f8; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #0b4a8f; font-size: 1.1rem; }
+                .step { margin-bottom: 15px; padding: 12px; border-bottom: 1px dashed #e2e8f0; }
+                .final { font-weight: bold; color: #198754; font-size: 1.2rem; margin-top: 30px; }
             </style>
         </head>
         <body>
-            <div class=\"card\">
-                <h2 class=\"header\">Detailed Step-wise Solution</h2>
-                <div class=\"question\"><strong>Question ${index+1}:</strong><br>${q.q}</div>
-                <div class=\"steps-container\">
-                    ${q.solution.split('<br>').map(s => `<div class=\"step\">${s}</div>`).join('')}
-                </div>
-                <div class=\"correct-ans\">Final Correct Answer: ${q.correct}</div>
+            <div class="container">
+                <h1>Step-by-Step Solution</h1>
+                <div class="q-box"><strong>Question ${idx+1}:</strong><br>${q.q}</div>
+                <div>${q.solution.split('<br>').map(s => `<div class="step">${s}</div>`).join('')}</div>
+                <div class="final">Correct Answer: ${q.correct}</div>
             </div>
         </body>
         </html>
     `);
-    solWindow.document.close();
+    solTab.document.close();
 };
 
-// 6. MODERN SUMMARY VIEW (WITH SOLUTION COLUMN)
+// 6. MODERN SUMMARY VIEW
 function showFinalResultOnly() {
     timerActive = false; 
     let score = 0;
@@ -204,18 +202,18 @@ function showFinalResultOnly() {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
         return `
-            <tr style=\"border-bottom: 1px solid #edf2f7;\">
-                <td style=\"padding:15px; text-align:center; color:#718096; font-weight:600;\">${i+1}</td>
-                <td style=\"padding:15px; text-align:left; color:#2d3748;\">${q.q}</td>
-                <td style=\"padding:15px; text-align:center;\">
-                    <span style=\"padding:4px 12px; border-radius:12px; font-weight:bold; font-size:0.85rem; 
-                        background:${isCorrect ? '#c6f6d5' : '#fed7d7'}; color:${isCorrect ? '#22543d' : '#822727'};\">
+            <tr style="border-bottom: 1px solid #edf2f7;">
+                <td style="padding:15px; text-align:center; color:#718096; font-weight:600;">${i+1}</td>
+                <td style="padding:15px; text-align:left; color:#2d3748;">${q.q}</td>
+                <td style="padding:15px; text-align:center;">
+                    <span style="padding:4px 12px; border-radius:12px; font-weight:bold; font-size:0.85rem; 
+                        background:${isCorrect ? '#c6f6d5' : '#fed7d7'}; color:${isCorrect ? '#22543d' : '#822727'};">
                         ${userAnswers[i] || 'N/A'}
                     </span>
                 </td>
-                <td style=\"padding:15px; text-align:center; font-weight:bold; color:#0b4a8f;\">${q.correct}</td>
-                <td style=\"padding:15px; text-align:center;\">
-                    <button onclick=\"viewDetailedSolution(${i})\" style=\"background:none; border:1px solid #0b4a8f; color:#0b4a8f; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:0.8rem; font-weight:600; transition:0.2s;\" onmouseover=\"this.style.background='#0b4a8f'; this.style.color='white'\" onmouseout=\"this.style.background='none'; this.style.color='#0b4a8f'\">View Solution</button>
+                <td style="padding:15px; text-align:center; font-weight:bold; color:#0b4a8f;">${q.correct}</td>
+                <td style="padding:15px; text-align:center;">
+                    <button onclick="openDetailedSolution(${i})" style="background:none; border:1.5px solid #0b4a8f; color:#0b4a8f; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.75rem; transition: 0.2s;" onmouseover="this.style.background='#0b4a8f'; this.style.color='white'" onmouseout="this.style.background='none'; this.style.color='#0b4a8f'">View Solution</button>
                 </td>
             </tr>`;
     }).join('');
@@ -224,26 +222,26 @@ function showFinalResultOnly() {
     setView('result');
 
     document.getElementById('score-val').innerHTML = `
-        <div style=\"display: flex; justify-content: center; margin-bottom: 40px;\">
-            <div style=\"background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(11, 74, 143, 0.3); text-align: center; min-width: 320px;\">
-                <div style=\"font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;\">Score Report</div>
-                <div style=\"font-size: 3.5rem; font-weight: 800; margin: 0; line-height: 1;\">${score} <span style=\"font-size: 1.5rem; opacity: 0.7;\">/ ${totalQuestions}</span></div>
-                <div style=\"margin-top: 20px; font-size: 1.4rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 8px 25px; border-radius: 50px;\">
+        <div style="display: flex; justify-content: center; margin-bottom: 40px;">
+            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(11, 74, 143, 0.3); text-align: center; min-width: 320px;">
+                <div style="font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">Score Report</div>
+                <div style="font-size: 3.5rem; font-weight: 800; margin: 0; line-height: 1;">${score} <span style="font-size: 1.5rem; opacity: 0.7;">/ ${totalQuestions}</span></div>
+                <div style="margin-top: 20px; font-size: 1.4rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 8px 25px; border-radius: 50px;">
                     Accuracy: ${percentage}%
                 </div>
             </div>
         </div>`;
 
     document.getElementById('review-panel').innerHTML = `
-        <div style=\"background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;\">
-            <table style=\"width:100%; border-collapse:collapse; font-family: sans-serif;\">
+        <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
+            <table style="width:100%; border-collapse:collapse; font-family: sans-serif;">
                 <thead>
-                    <tr style=\"background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;\">
-                        <th style=\"padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;\">Q.No</th>
-                        <th style=\"padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px; text-align:left;\">Question Description</th>
-                        <th style=\"padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;\">Your Response</th>
-                        <th style=\"padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;\">Correct Answer</th>
-                        <th style=\"padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;\">Solution</th>
+                    <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;">Q.No</th>
+                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px; text-align:left;">Question</th>
+                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;">Your Response</th>
+                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;">Correct</th>
+                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;">Solution</th>
                     </tr>
                 </thead>
                 <tbody>${tableRows}</tbody>
@@ -265,16 +263,16 @@ window.finalSubmission = async function() {
 // 7. UI HELPERS
 function renderPalette() {
     document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
-        <div id=\"dot-${i}\" onclick=\"jumpTo(${i})\" style=\"width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px;\">${i+1}</div>`).join('');
+        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px;">${i+1}</div>`).join('');
 }
 window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
 function updatePaletteUI() {
     activeBank.forEach((_, i) => {
         const dot = document.getElementById(`dot-${i}`);
         if (!dot) return;
-        dot.style.background = markedForReview[i] ? \"#6f42c1\" : (confirmedAnswered[i] ? \"#198754\" : \"#fff\");
-        dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? \"#fff\" : \"#333\";
-        dot.style.border = (i === currentIndex) ? \"2px solid #0b4a8f\" : \"1px solid #ccc\";
+        dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff");
+        dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333";
+        dot.style.border = (i === currentIndex) ? "2px solid #0b4a8f" : "1px solid #ccc";
     });
 }
 function updateStats() {
