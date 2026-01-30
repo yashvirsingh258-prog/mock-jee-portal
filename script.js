@@ -151,15 +151,12 @@ window.loadQuestion = function() {
             ${qData.type === 'mcq' ? qData.options.map((opt, i) => {
                 const isSelected = String(opt) === String(savedAnswer);
                 return `
-                <label style="padding: 15px; border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; background: ${isSelected ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
-                    <input type="radio" name="q-group-${currentIndex}" value="${opt}" 
-                        onchange="saveAnswer('${opt}')" 
-                        ${isSelected ? 'checked' : ''}> 
-                    <span>${opt}</span>
+                <label onclick="handleSelection(event, '${opt}')" style="padding: 15px; border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; background: ${isSelected ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer; display: block;">
+                    <input type="radio" name="q-group" value="${opt}" ${isSelected ? 'checked' : ''} style="pointer-events: none;"> 
+                    ${opt}
                 </label>`;
             }).join('') : `
-                <input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" 
-                    oninput="saveAnswer(this.value)" value="${savedAnswer}">`
+                <input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)" value="${savedAnswer}">`
             }
         </div>
     </div>`;
@@ -168,27 +165,25 @@ window.loadQuestion = function() {
     updatePaletteUI();
     if (window.MathJax) MathJax.typesetPromise();
 };
+
 window.saveAnswer = function(val) {
-    userAnswers[currentIndex] = val; // Store data
+    userAnswers[currentIndex] = val;
     
-    // Manually update ONLY the borders and backgrounds
-    const container = document.getElementById('options-container');
-    if (container) {
-        const labels = container.querySelectorAll('label');
-        labels.forEach(label => {
-            const radio = label.querySelector('input');
-            if (radio && radio.value === val) {
-                label.style.border = '1.5px solid #0b4a8f';
-                label.style.background = '#f0f7ff';
-            } else {
-                label.style.border = '1px solid #ddd';
-                label.style.background = '#fff';
-            }
-        });
-    }
+    // Manual color update
+    const labels = document.querySelectorAll('#options-container label');
+    labels.forEach(l => {
+        const r = l.querySelector('input');
+        if (r && r.value === val) {
+            l.style.border = '1.5px solid #0b4a8f';
+            l.style.background = '#f0f7ff';
+        } else {
+            l.style.border = '1px solid #ddd';
+            l.style.background = '#fff';
+        }
+    });
 
     updateStats();
-    updatePaletteUI(); // This makes the side circle green
+    updatePaletteUI();
     saveToCloud();
 };
 
