@@ -15,33 +15,23 @@ let currentUserEmail = "";
 
 // 3. AUTHENTICATION & INITIALIZATION
 window.handleLogin = async function() {
-    const emailInput = document.getElementById('login-email');
-    const passInput = document.getElementById('login-pass');
-    const email = emailInput.value.trim();
-    const pass = passInput.value.trim();
-    
-    if (!email || !pass) { 
-        alert("Please enter both email and password."); 
-        return; 
-    }
+    const email = document.getElementById('login-email').value.trim();
+    const pass = document.getElementById('login-pass').value.trim();
+    if (!email || !pass) { alert("Please enter credentials."); return; }
     
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-    
-    if (error) {
-        alert("Login failed: " + error.message);
-    } else if (data.user) { 
+    if (error) alert("Login failed.");
+    else if (data.user) { 
         currentUserEmail = data.user.email; 
         await fetchQuestionsAndStart(); 
     }
 };
 
-// 4. DYNAMIC DATA FETCHING
 window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
-    const { data, error } = await supabaseClient.from('questions_table').select('test_name').eq('subject', sub);
-
-    if (!error && testSelect) {
+    const { data } = await supabaseClient.from('questions_table').select('test_name').eq('subject', sub);
+    if (data && testSelect) {
         testSelect.innerHTML = data.map(row => `<option value="${row.test_name}">${row.test_name}</option>`).join('');
     }
 };
@@ -51,20 +41,16 @@ async function fetchQuestionsAndStart() {
     const testName = document.getElementById('test-name-select').value;
     const { data, error } = await supabaseClient.from('questions_table').select('question_data').eq('subject', sub).eq('test_name', testName).single();
 
-    if (error || !data) {
-        alert("Could not load test questions.");
-        return;
-    }
+    if (error || !data) { alert("Could not load questions."); return; }
     activeBank = data.question_data; 
     startExam();
 }
 
-// 5. PERSISTENCE
+// 4. PERSISTENCE
 async function saveToCloud() {
     if (!currentUserEmail) return;
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
-    
     await supabaseClient.from('student_progress').upsert({ 
         username: currentUserEmail, subject: sub, test_name: testName, 
         current_index: currentIndex, user_answers: [...userAnswers],
@@ -73,7 +59,7 @@ async function saveToCloud() {
     }, { onConflict: 'username, subject, test_name' });
 }
 
-// 6. EXAM LOGIC & UI (RESTORED ALIGNMENT)
+// 5. EXAM UI LOGIC
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
@@ -81,13 +67,9 @@ window.startExam = async function() {
     const { data } = await supabaseClient.from('student_progress').select('*')
         .eq('username', currentUserEmail).eq('subject', sub).eq('test_name', testName).maybeSingle();
 
-    if (data && data.is_finished) {
-        userAnswers = data.user_answers;
-        showFinalResultOnly(); 
-        return;
-    }
+    if (data && data.is_finished) { userAnswers = data.user_answers; showFinalResultOnly(); return; }
 
-    if (data && confirm("Resume progress?")) {
+    if (data && confirm("Resume existing progress?")) {
         currentIndex = data.current_index; userAnswers = data.user_answers;
         confirmedAnswered = data.confirmed_answered; markedForReview = data.marked_for_review;
         timeLeft = data.time_left;
@@ -98,7 +80,7 @@ window.startExam = async function() {
     }
     
     document.getElementById('exam-header').style.display = 'flex';
-    document.getElementById('quiz-container').style.display = 'flex';
+    document.getElementById('quiz-container').style.display = 'flex'; // Uses .main-layout from CSS
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('display-subject').innerText = `${sub.toUpperCase()} - ${testName}`;
     
@@ -111,34 +93,20 @@ window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // Using internal flex column to keep Question, Options, and Nav in order
+    // Clean structure using your CSS classes for proper alignment
     area.innerHTML = `
-        <div class="question-container-inner" style="display:flex; flex-direction:column; height:100%;">
-            <div style="margin-bottom: 20px;">
-                <span class="q-type-label">Question ${currentIndex + 1}</span>
-            </div>
+        <div class="question-wrapper">
+            <span class="q-type-label">Question ${currentIndex + 1}</span>
+            <div class="question-text" style="font-size: 1.2rem; margin: 20px 0;">${qData.q}</div>
             
-            <div class="question-text" style="font-size: 1.2rem; margin-bottom: 30px; line-height: 1.6;">
-                ${qData.q}
-            </div>
-
-            <div class="options-list" style="flex-grow: 1; display: flex; flex-direction: column; gap: 12px;">
+            <div class="options-container">
                 ${qData.type === 'mcq' ? 
-                    qData.options.map((opt, idx) => `
-                        <label class="option-box ${userAnswers[currentIndex] === opt ? 'selected' : ''}" 
-                               style="display:flex; align-items:center; gap:15px; border: 1px solid #ddd; padding: 15px; border-radius: 8px; cursor: pointer;">
-                            <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}>
-                            <span>${opt}</span>
+                    qData.options.map(opt => `
+                        <label class="option-box" style="border-color: ${userAnswers[currentIndex] === opt ? 'var(--primary)' : '#eee'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'};">
+                            <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> ${opt}
                         </label>`).join('') :
-                    `<input type="text" class="num-input" placeholder="Type Answer Here" oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`
+                    `<input type="text" class="num-input" placeholder="Type answer..." oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`
                 }
-            </div>
-
-            <div class="nav-bar" style="margin-top: 30px; display: flex; gap: 10px; border-top: 1px solid #eee; padding-top: 20px;">
-                <button class="btn-sec" onclick="prevQuestion()">Previous</button>
-                <button class="btn-rev" onclick="markForReview()">Mark for Review</button>
-                <button class="btn-clear" onclick="clearResponse()">Clear Response</button>
-                <button class="btn-pri" onclick="saveAndNext()">Save & Next</button>
             </div>
         </div>`;
     
@@ -164,73 +132,20 @@ window.clearResponse = () => {
     loadQuestion(); saveToCloud();
 };
 
-// 7. TIMER & SUBMISSION
+// 6. TIMER & PALETTE
 function startTimer() {
     timerActive = true;
-    const interval = setInterval(() => {
-        if (!timerActive) { clearInterval(interval); return; }
+    setInterval(() => {
+        if (!timerActive) return;
         timeLeft--;
         document.getElementById('time').innerText = `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}`;
         if (timeLeft <= 0) finalSubmission();
     }, 1000);
 }
 
-window.confirmSubmit = () => { if (confirm("Final Submit?")) finalSubmission(); };
-
-async function finalSubmission() {
-    const sub = document.getElementById('subject-select').value;
-    const testName = document.getElementById('test-name-select').value;
-    await supabaseClient.from('student_progress').upsert({ 
-        username: currentUserEmail, subject: sub, test_name: testName, is_finished: true, 
-        user_answers: [...userAnswers], time_left: 0
-    }, { onConflict: 'username, subject, test_name' });
-    showFinalResultOnly();
-}
-
-// 8. RESULTS (PREMIUM CARD DESIGN)
-function showFinalResultOnly() {
-    timerActive = false; 
-    let score = 0;
-    const total = activeBank.length;
-    
-    let tableRows = activeBank.map((q, i) => {
-        const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
-        if (isCorrect) score++;
-        return `
-            <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="padding:15px; text-align:center; font-weight:bold;">${i+1}</td>
-                <td style="padding:15px;">${q.q}</td>
-                <td style="padding:15px; text-align:center; color:${isCorrect ? 'green':'red'}; font-weight:bold;">${userAnswers[i] || 'N/A'}</td>
-                <td style="padding:15px; text-align:center; font-weight:bold;">${q.correct}</td>
-                <td style="padding:15px; text-align:center;"><button class="btn-pri" onclick="openDetailedSolution(${i})">Solution</button></td>
-            </tr>`;
-    }).join('');
-
-    document.getElementById('quiz-container').style.display = 'none';
-    document.getElementById('exam-header').style.display = 'none';
-    document.getElementById('result-screen').style.display = 'block';
-    document.getElementById('result-screen').innerHTML = `
-        <div style="max-width: 900px; margin: 50px auto; background:white; padding:40px; border-radius:15px; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
-            <div style="text-align:center; margin-bottom:40px;">
-                <h1 style="color:var(--primary);">Test Completed</h1>
-                <div style="font-size:3rem; font-weight:800;">Score: ${score} / ${total}</div>
-            </div>
-            <table style="width:100%; border-collapse:collapse;">
-                <thead style="background:#f8fafc;">
-                    <tr><th>#</th><th style="text-align:left;">Question</th><th>Your Ans</th><th>Correct</th><th>Action</th></tr>
-                </thead>
-                <tbody>${tableRows}</tbody>
-            </table>
-        </div>`;
-    if (window.MathJax) MathJax.typesetPromise();
-}
-
-// 9. PALETTE UI (STRICT JEE SHAPES)
 function renderPalette() {
-    document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
-        <div id="dot-${i}" class="dot" onclick="jumpTo(${i})">${i+1}</div>`).join('');
+    document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `<div id="dot-${i}" class="dot" onclick="jumpTo(${i})">${i+1}</div>`).join('');
 }
-
 window.jumpTo = (i) => { currentIndex = i; loadQuestion(); saveToCloud(); };
 
 function updatePaletteUI() {
@@ -245,8 +160,21 @@ function updatePaletteUI() {
 }
 
 function updateStats() {
-    document.getElementById('count-ans').innerText = confirmedAnswered.filter(x => x).length;
-    document.getElementById('count-not-ans').innerText = activeBank.length - confirmedAnswered.filter(x => x).length;
+    const ans = confirmedAnswered.filter(x => x).length;
+    document.getElementById('count-ans').innerText = ans;
+    document.getElementById('count-not-ans').innerText = activeBank.length - ans;
+}
+
+window.confirmSubmit = () => { if (confirm("Submit test?")) finalSubmission(); };
+
+async function finalSubmission() {
+    const sub = document.getElementById('subject-select').value;
+    const testName = document.getElementById('test-name-select').value;
+    await supabaseClient.from('student_progress').upsert({ 
+        username: currentUserEmail, subject: sub, test_name: testName, 
+        is_finished: true, user_answers: [...userAnswers], time_left: 0
+    }, { onConflict: 'username, subject, test_name' });
+    location.reload(); // Or trigger result view
 }
 
 document.addEventListener('DOMContentLoaded', updateTestNames);
