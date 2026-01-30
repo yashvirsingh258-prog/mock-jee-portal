@@ -17,24 +17,24 @@ window.handleLogin = async function() {
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
     
+    // REPLACED ALERT WITH IN-PAGE MESSAGE
     if (!email || !pass) { 
-        if(statusMsg) statusMsg.innerText = "Please enter your credentials.";
+        if(statusMsg) statusMsg.innerText = "Please enter credentials.";
         return; 
     }
     
     const loginBtn = document.querySelector('.login-submit-btn');
     if(loginBtn) loginBtn.innerText = "AUTHENTICATING..."; 
-    if(statusMsg) statusMsg.innerText = ""; // Clear previous messages
+    if(statusMsg) statusMsg.innerText = ""; 
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
     
     if (error) {
-        alert("Login failed: " + error.message);
+        if(statusMsg) statusMsg.innerText = "Login failed: " + error.message;
         if(loginBtn) loginBtn.innerText = "ENTER PORTAL";
     } else if (data.user) { 
         currentUserEmail = data.user.email;
         
-        // Check if test is already finished before starting
         const sub = document.getElementById('subject-select').value;
         const testName = document.getElementById('test-name-select').value;
         const { data: progress } = await supabaseClient.from('student_progress')
@@ -108,7 +108,6 @@ window.startExam = async function() {
     const testName = document.getElementById('test-name-select').value;
     const { data } = await supabaseClient.from('student_progress').select('*').eq('username', currentUserEmail).eq('subject', sub).eq('test_name', testName).maybeSingle();
     
-    // Safety check: if they somehow bypassed login and are finished, show results
     if (data && data.is_finished) { userAnswers = data.user_answers; showFinalResultOnly(); return; }
     
     if (data && confirm("Resume progress?")) {
@@ -150,7 +149,6 @@ function startTimer() { timerActive = true; const interval = setInterval(() => {
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 async function saveToCloud() { if (!currentUserEmail) return; const sub = document.getElementById('subject-select').value; const testName = document.getElementById('test-name-select').value; await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, subject: sub, test_name: testName, current_index: currentIndex, user_answers: [...userAnswers], confirmed_answered: [...confirmedAnswered], marked_for_review: [...markedForReview], time_left: timeLeft, is_finished: false }, { onConflict: 'username, subject, test_name' }); }
 
-// 6. PREMIUM SOLUTIONS & SUMMARY
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
