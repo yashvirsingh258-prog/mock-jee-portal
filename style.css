@@ -11,56 +11,58 @@
 body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--gray); overflow-x: hidden; }
 .no-select { user-select: none; }
 
-/* LOGIN PAGE - STRICTLY RETAINED */
+/* Login - EXACTLY AS BEFORE */
 #login-screen { position: fixed; inset: 0; background: white; display: flex; justify-content: center; align-items: center; z-index: 1000; }
 .login-card { border: 1px solid #ddd; padding: 30px; border-radius: 12px; width: 360px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
 .field-label { display: block; text-align: left; font-size: 0.85rem; margin-top: 10px; font-weight: bold; color: #555; }
 input, select { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
 
-/* PREMIUM HEADER & GOLD TIMER */
+/* Header & Gold Timer */
 .header { background: var(--primary); color: white; padding: 10px 20px; display: none; justify-content: space-between; align-items: center; height: 60px; }
 #timer-box { font-family: monospace; font-size: 1.3rem; color: gold; background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 4px; border: 1px solid gold; font-weight: bold; }
 
-/* EXAM CARD VIEW */
+/* The Exam Card View */
 .question-card { 
     background: white; 
-    border-radius: 12px; 
-    padding: 30px; 
-    box-shadow: 0 4px 20px rgba(0,0,0,0.05); 
-    border: 1px solid #e2e8f0;
-    margin: 10px;
+    border: 1px solid #e0e6ed; 
+    border-radius: 8px; 
+    padding: 25px; 
+    margin: 10px; 
+    box-shadow: 0 2px 10px rgba(0,0,0,0.03);
 }
+
 .option-box { 
     display: block; 
-    padding: 15px; 
-    margin: 12px 0; 
-    border: 1px solid #e2e8f0; 
-    border-radius: 8px; 
+    padding: 14px 20px; 
+    margin: 10px 0; 
+    border: 1px solid #edf2f7; 
+    border-radius: 6px; 
     cursor: pointer; 
     transition: all 0.2s ease;
     background: #fff;
 }
-.option-box:hover { background: #f8fafc; border-color: var(--primary); transform: translateX(5px); }
+.option-box:hover { background: #f8fafc; border-color: var(--primary); transform: translateX(4px); }
 .option-box.selected { background: #f0f7ff; border-color: var(--primary); font-weight: 600; }
 
-/* RESTORED JEE PALETTE SHAPES */
+/* JEE Palette Shapes */
 #palette-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 15px; }
-.dot { height: 40px; width: 44px; background: #eee; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: transform 0.2s; }
-.dot:hover { transform: scale(1.1); z-index: 5; }
+.dot { height: 40px; width: 44px; background: #eee; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.9rem; font-weight: 600; }
 .dot.answered { 
     background: var(--success) !important; color: white !important; border: none; 
     clip-path: polygon(10% 0%, 90% 0%, 100% 30%, 100% 70%, 90% 100%, 10% 100%, 0% 70%, 0% 30%); 
 }
 .dot.review { background: var(--review) !important; color: white !important; border-radius: 50%; border: none; }
-.dot.active { border: 2.5px solid var(--primary); box-shadow: 0 0 10px rgba(11, 74, 143, 0.3); }
+.dot.active { border: 2.5px solid var(--primary); transform: scale(1.05); }
 
-/* MODERN SUMMARY PAGE */
+/* Premium Summary Page Styling */
 .summary-container { max-width: 1000px; margin: 40px auto; padding: 20px; }
 .result-header-card { 
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); 
-    color: white; padding: 40px; border-radius: 20px; text-align: center; margin-bottom: 30px;
+    color: white; padding: 40px; border-radius: 15px; text-align: center; margin-bottom: 30px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
 }
-.result-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
-.result-table tr { background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.03); transition: transform 0.2s; }
-.result-table tr:hover { transform: scale(1.01); }
-.result-table td, .result-table th { padding: 15px; border: none; }
+.result-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+.result-table tr { background: white; transition: transform 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+.result-table tr:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.result-table td { padding: 18px; border: none; }
+.result-table th { padding: 10px 18px; color: #64748b; text-align: left; font-size: 0.8rem; text-transform: uppercase; }
