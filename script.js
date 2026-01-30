@@ -28,7 +28,7 @@ const questionBanks = {
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. AUTHENTICATION (Fixed to start exam properly)
+// 3. AUTHENTICATION
 window.handleLogin = async function() {
     const email = document.getElementById('login-email').value.trim();
     const pass = document.getElementById('login-pass').value.trim();
@@ -44,7 +44,7 @@ window.handleLogin = async function() {
         alert("Login failed: " + error.message);
     } else if (data.user) {
         currentUserEmail = data.user.email;
-        startExam(); // CRITICAL FIX: This triggers the question loading logic
+        startExam(); 
     }
 };
 
@@ -80,12 +80,21 @@ window.setView = function(view) {
     document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
 };
 
+// 6. START EXAM WITH SECURITY CHECK
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     activeBank = questionBanks[sub] || questionBanks['mathematics'];
     
     const { data } = await supabaseClient.from('student_progress').select('*')
         .eq('username', currentUserEmail).eq('subject', sub).maybeSingle();
+
+    // NEW SECURITY LOGIC: Block resume if test is finished
+    if (data && data.is_finished) {
+        alert("This test has already been submitted. You can only view your results.");
+        userAnswers = data.user_answers;
+        showFinalResultOnly(); // Display the result summary
+        return;
+    }
 
     if (data && confirm("Resume existing progress?")) {
         currentIndex = data.current_index;
@@ -165,8 +174,8 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
-// MODERN TEST SUMMARY
-window.finalSubmission = async function() {
+// MODERN TEST SUMMARY DISPLAY
+function showFinalResultOnly() {
     timerActive = false; 
     let score = 0;
     const totalQuestions = activeBank.length;
@@ -186,7 +195,6 @@ window.finalSubmission = async function() {
     const percentage = ((score / totalQuestions) * 100).toFixed(2);
     setView('result');
 
-    // MODERN STICKER AT TOP
     document.getElementById('score-val').innerHTML = `
         <div style="display: flex; justify-content: center; margin-bottom: 40px;">
             <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e90ff 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(11, 74, 143, 0.3); text-align: center; min-width: 320px;">
@@ -214,7 +222,11 @@ window.finalSubmission = async function() {
         </div>`;
 
     if (window.MathJax) setTimeout(() => { MathJax.typesetPromise([document.getElementById('review-panel')]); }, 200);
+}
 
+// FINAL SUBMISSION LOGIC
+window.finalSubmission = async function() {
+    showFinalResultOnly();
     const sub = document.getElementById('subject-select').value;
     await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, subject: sub, is_finished: true, user_answers: [...userAnswers] }, { onConflict: 'username' });
 };
