@@ -20,17 +20,15 @@ window.handleLogin = async function() {
     if (error) alert("Login failed: " + error.message);
     else if (data.user) { 
         currentUserEmail = data.user.email; 
-        await fetchQuestionsAndStart(); // NEW: Fetch dynamic questions
+        await fetchQuestionsAndStart(); 
     }
 };
 
 // 4. DYNAMIC FETCHING LOGIC
-// Populate Test Names based on selected Subject
 window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
     
-    // Fetch unique test names for the selected subject from Supabase
     const { data, error } = await supabaseClient
         .from('questions_table')
         .select('test_name')
@@ -52,7 +50,6 @@ async function fetchQuestionsAndStart() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
 
-    // Fetch the specific question bank from Supabase
     const { data, error } = await supabaseClient
         .from('questions_table')
         .select('question_data')
@@ -65,11 +62,11 @@ async function fetchQuestionsAndStart() {
         return;
     }
 
-    activeBank = data.question_data; // Populate the bank from DB
+    activeBank = data.question_data; 
     startExam();
 }
 
-// 5. CLOUD PERSISTENCE (Saves progress for the specific test)
+// 5. CLOUD PERSISTENCE
 async function saveToCloud() {
     if (!currentUserEmail) return;
     const sub = document.getElementById('subject-select').value;
@@ -149,7 +146,6 @@ window.loadQuestion = function() {
     if (window.MathJax) MathJax.typesetPromise();
 };
 
-// ... (saveAnswer, saveAndNext, markForReview, clearResponse remain identical) ...
 window.saveAnswer = function(val) { userAnswers[currentIndex] = val; saveToCloud(); };
 window.saveAndNext = function() {
     if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; }
@@ -180,7 +176,7 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
-// SOLUTION WINDOW LOGIC
+// SOLUTION WINDOW LOGIC - Updated for MathJax Support
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
@@ -188,19 +184,27 @@ window.openDetailedSolution = function(idx) {
         <html>
         <head>
             <title>Solution - Q${idx+1}</title>
+            <script>
+                window.MathJax = {
+                    tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] }
+                };
+            </script>
             <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
             <style>
-                body { font-family: 'Segoe UI', sans-serif; padding: 40px; background: #f4f7f9; }
-                .container { max-width: 800px; margin: auto; background: white; padding: 40px; border-radius: 12px; }
-                .step { margin-bottom: 15px; padding: 12px; border-bottom: 1px dashed #e2e8f0; }
+                body { font-family: 'Inter', -apple-system, sans-serif; padding: 40px; background: #f8fafc; color: #1e293b; line-height: 1.6; }
+                .container { max-width: 800px; margin: auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+                h2 { color: #0b4a8f; margin-bottom: 24px; font-weight: 700; }
+                .q-box { background:#f1f5f9; padding:20px; border-radius: 12px; border-left:6px solid #0b4a8f; font-weight: 500; margin-bottom: 30px;}
+                .step { margin-bottom: 20px; padding: 16px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; }
+                .correct-ans { color:#10b981; font-size: 1.25rem; font-weight: 700; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; }
             </style>
         </head>
         <body>
             <div class="container">
-                <h2>Step-by-Step Solution</h2>
-                <div style="background:#f0f4f8; padding:15px; border-left:5px solid #0b4a8f;">${q.q}</div>
-                <div style="margin-top:20px;">${q.solution.split('<br>').map(s => `<div class="step">${s}</div>`).join('')}</div>
-                <h3 style="color:#198754;">Correct Answer: ${q.correct}</h3>
+                <h2>Question ${idx+1} Detailed Solution</h2>
+                <div class="q-box">${q.q}</div>
+                <div>${q.solution.split('<br>').map(s => `<div class="step">${s}</div>`).join('')}</div>
+                <div class="correct-ans">Correct Answer: ${q.correct}</div>
             </div>
         </body>
         </html>`;
@@ -208,7 +212,7 @@ window.openDetailedSolution = function(idx) {
     solTab.document.close();
 };
 
-// 7. SUMMARY VIEW
+// 7. MODERN SUMMARY VIEW
 function showFinalResultOnly() {
     timerActive = false; 
     let score = 0;
@@ -218,17 +222,17 @@ function showFinalResultOnly() {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
         return `
-            <tr style="border-bottom: 1px solid #edf2f7;">
-                <td style="padding:15px; text-align:center; font-weight:600;">${i+1}</td>
-                <td style="padding:15px; text-align:left;">${q.q}</td>
-                <td style="padding:15px; text-align:center;">
-                    <span style="padding:4px 12px; border-radius:12px; font-weight:bold; background:${isCorrect ? '#c6f6d5' : '#fed7d7'}; color:${isCorrect ? '#22543d' : '#822727'};">
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding:18px; text-align:center; color:#64748b; font-weight:600;">${i+1}</td>
+                <td style="padding:18px; text-align:left; color:#334155; font-size:0.95rem;">${q.q}</td>
+                <td style="padding:18px; text-align:center;">
+                    <span style="padding:6px 14px; border-radius:20px; font-weight:700; font-size:0.85rem; background:${isCorrect ? '#d1fae5' : '#fee2e2'}; color:${isCorrect ? '#065f46' : '#991b1b'};">
                         ${userAnswers[i] || 'N/A'}
                     </span>
                 </td>
-                <td style="padding:15px; text-align:center; font-weight:bold; color:#0b4a8f;">${q.correct}</td>
-                <td style="padding:15px; text-align:center;">
-                    <button onclick="openDetailedSolution(${i})" style="border:1.5px solid #0b4a8f; color:#0b4a8f; padding:6px 12px; border-radius:6px; cursor:pointer; background:none;">View Solution</button>
+                <td style="padding:18px; text-align:center; font-weight:700; color:#0b4a8f;">${q.correct}</td>
+                <td style="padding:18px; text-align:center;">
+                    <button onclick="openDetailedSolution(${i})" style="border:1.5px solid #0b4a8f; color:#0b4a8f; padding:8px 16px; border-radius:8px; cursor:pointer; background:white; font-weight:600; font-size:0.8rem; transition: all 0.2s ease;" onmouseover="this.style.background='#0b4a8f'; this.style.color='white'">View Solution</button>
                 </td>
             </tr>`;
     }).join('');
@@ -236,24 +240,28 @@ function showFinalResultOnly() {
     const percentage = ((score / totalQuestions) * 100).toFixed(2);
     setView('result');
 
+    // Retaining your premium sticker design
     document.getElementById('score-val').innerHTML = `
         <div style="display: flex; justify-content: center; margin-bottom: 40px;">
-            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 20px; text-align: center;">
-                <div style="font-size: 3.5rem; font-weight: 800;">${score} / ${totalQuestions}</div>
-                <div style="font-size: 1.2rem;">Accuracy: ${percentage}%</div>
+            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 24px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); text-align: center; min-width: 320px;">
+                <div style="font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; font-weight:600; opacity: 0.8;">Test Performance</div>
+                <div style="font-size: 3.5rem; font-weight: 800; margin: 0; line-height: 1;">${score} <span style="font-size: 1.5rem; opacity: 0.6;">/ ${totalQuestions}</span></div>
+                <div style="margin-top: 20px; font-size: 1.1rem; background: rgba(255,255,255,0.1); display: inline-block; padding: 10px 24px; border-radius: 50px; font-weight:600;">
+                    Accuracy: ${percentage}%
+                </div>
             </div>
         </div>`;
 
     document.getElementById('review-panel').innerHTML = `
-        <div style="background: white; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0;">
-            <table style="width:100%; border-collapse:collapse;">
+        <div style="background: white; border-radius: 20px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);">
+            <table style="width:100%; border-collapse:collapse; font-family: 'Inter', sans-serif;">
                 <thead>
                     <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                        <th style="padding:18px;">Q.No</th>
-                        <th style="padding:18px; text-align:left;">Question</th>
-                        <th style="padding:18px;">Your Response</th>
-                        <th style="padding:18px;">Correct</th>
-                        <th style="padding:18px;">Solution</th>
+                        <th style="padding:20px; color:#475569; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Q.No</th>
+                        <th style="padding:20px; color:#475569; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; text-align:left;">Question Description</th>
+                        <th style="padding:20px; color:#475569; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Your Response</th>
+                        <th style="padding:20px; color:#475569; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Correct</th>
+                        <th style="padding:20px; color:#475569; font-size:0.75rem; text-transform:uppercase; letter-spacing:1px;">Action</th>
                     </tr>
                 </thead>
                 <tbody>${tableRows}</tbody>
@@ -276,7 +284,7 @@ window.finalSubmission = async function() {
 // UI HELPERS
 function renderPalette() {
     document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
-        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px;">${i+1}</div>`).join('');
+        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:600; font-size:0.8rem;">${i+1}</div>`).join('');
 }
 window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
 function updatePaletteUI() {
@@ -294,7 +302,6 @@ function updateStats() {
     document.getElementById('count-not-ans').innerText = activeBank.length - ans;
 }
 
-// Initial setup
 document.addEventListener('DOMContentLoaded', () => { 
     updateTestNames(); 
 });
