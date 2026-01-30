@@ -138,48 +138,45 @@ window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // 1. Get current stored answer for this index
-    const currentSelection = userAnswers[currentIndex] || "";
+    // 1. Retrieve the saved answer and normalize it for comparison
+    const savedAnswer = String(userAnswers[currentIndex] || "").trim();
 
-    // 2. Build the HTML structure
     area.innerHTML = `
     <div style="padding: 20px 50px;">
         <div style="margin-bottom: 20px;">
-            <span style="background: #0b4a8f; color: white; padding: 6px 18px; border-radius: 4px; font-weight: 500; font-size: 0.9rem;">
-                Question ${currentIndex + 1}
-            </span>
+            <span class="q-type-label">Question ${currentIndex + 1}</span>
         </div>
 
-        <div style="font-size: 1.25rem; margin-bottom: 30px; line-height: 1.6; color: #222;">
+        <div style="font-size: 1.2rem; margin-bottom: 30px; line-height: 1.6; color: #222;">
             ${qData.q}
         </div>
 
-        <div id="options-container" style="display: flex; flex-direction: column; gap: 12px;">
+        <div id="options-container" style="display: flex; flex-direction: column; gap: 15px;">
             ${qData.type === 'mcq' ? 
                 qData.options.map((opt, i) => {
-                    // Strict comparison for LaTeX and special characters
-                    const isSelected = String(opt).trim() === String(currentSelection).trim();
+                    // Strict comparison to ensure LaTeX strings match exactly
+                    const isChecked = String(opt).trim() === savedAnswer;
                     
                     return `
                     <label style="
                         display: flex; 
                         align-items: center; 
-                        padding: 15px 20px; 
-                        border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; 
-                        background: ${isSelected ? '#f0f7ff' : '#fff'}; 
+                        padding: 16px 20px; 
+                        border: 1.5px solid ${isChecked ? '#0b4a8f' : '#ddd'}; 
+                        background: ${isChecked ? '#f0f7ff' : '#fff'}; 
                         border-radius: 8px; 
-                        cursor: pointer; 
+                        cursor: pointer;
                         transition: all 0.2s ease;
                     ">
                         <input type="radio" 
                                name="q-group-${currentIndex}" 
                                value="${opt}" 
                                onchange="saveAnswer(this.value)" 
-                               ${isSelected ? 'checked' : ''}
+                               ${isChecked ? 'checked' : ''}
                                style="
                                    margin-right: 20px; 
-                                   width: 18px; 
-                                   height: 18px; 
+                                   width: 20px; 
+                                   height: 20px; 
                                    cursor: pointer; 
                                    flex-shrink: 0;
                                "> 
@@ -191,28 +188,26 @@ window.loadQuestion = function() {
                 }).join('') 
                 : 
                 `<div style="display: flex; align-items: center; gap: 15px;">
-                    <span style="font-weight: 600; color: #555;">Your Answer:</span>
+                    <span style="font-weight: bold;">Your Answer:</span>
                     <input type="text" 
-                           placeholder="Type your answer here..."
-                           style="padding: 12px 15px; border-radius: 6px; border: 2px solid #0b4a8f; width: 200px; font-size: 1rem;" 
-                           oninput="saveAnswer(this.value)" 
-                           value="${currentSelection}">
+                           class="num-input" 
+                           value="${savedAnswer}" 
+                           oninput="saveAnswer(this.value)"
+                           style="margin-left: 0;">
                 </div>`
             }
         </div>
     </div>`;
 
-    // 3. Update Sidebar Palette and Stats
+    // Refresh UI components
     updateStats(); 
     updatePaletteUI();
     
-    // 4. Handle LaTeX Rendering (MathJax)
+    // Render Math (MathJax) if present
     if (window.MathJax) {
-        // Typeset only the question area to maintain performance
-        MathJax.typesetPromise([area]).catch((err) => console.error("MathJax Error:", err));
+        MathJax.typesetPromise([area]).catch((err) => console.log(err));
     }
 };
-
 let isSaving = false; // Add this at the top of your script
 
 window.saveAnswer = function(val) {
