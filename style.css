@@ -8,67 +8,50 @@
     --gray: #f8fafc;
 }
 
-body { font-family: 'Inter', -apple-system, sans-serif; margin: 0; background: var(--gray); }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; margin: 0; background: var(--gray); overflow-x: hidden; }
+.no-select { user-select: none; }
 
-/* NAVIGATION BAR - EQUAL SIZED BUTTONS */
-.nav-bar { 
-    display: grid; 
-    grid-template-columns: repeat(4, 1fr); /* 4 equal columns */
-    gap: 15px; 
-    margin-top: 40px; 
-    padding: 20px; 
-    border-top: 1px solid #e2e8f0; 
-    background: #fff;
-    border-radius: 12px;
+/* PREMIUM LOGIN CARD */
+#login-screen { position: fixed; inset: 0; background: #f0f4f8; display: flex; justify-content: center; align-items: center; z-index: 1000; }
+.login-card { 
+    background: white; 
+    padding: 40px; 
+    border-radius: 20px; 
+    width: 380px; 
+    text-align: center; 
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); 
 }
+.login-card h2 { color: var(--primary); margin-bottom: 25px; font-weight: 800; }
 
-.nav-bar button { 
-    height: 50px; /* Fixed height for uniformity */
-    font-weight: 700; 
-    border-radius: 8px; 
-    cursor: pointer; 
-    border: none; 
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.field-label { display: block; text-align: left; font-size: 0.8rem; margin-top: 15px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+input, select { 
+    width: 100%; padding: 14px; margin: 8px 0 10px 0; border: 1.5px solid #e2e8f0; border-radius: 10px; box-sizing: border-box; 
+    transition: border-color 0.2s; font-size: 0.95rem;
 }
+input:focus, select:focus { outline: none; border-color: var(--primary); }
 
-.nav-bar button:hover { filter: brightness(0.9); transform: translateY(-1px); }
-
-/* PALETTE REFINEMENT */
-#palette-grid { 
-    display: grid; 
-    grid-template-columns: repeat(5, 1fr); 
-    gap: 10px; 
-    padding: 10px 0;
+/* PREMIUM BUTTONS */
+.btn-pri { 
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); 
+    color: white; border: none; padding: 16px 24px; font-size: 1rem; font-weight: 700; border-radius: 12px; cursor: pointer; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 12px rgba(11, 74, 143, 0.25);
 }
+.btn-pri:hover { transform: translateY(-2px); box-shadow: 0 12px 20px -5px rgba(11, 74, 143, 0.4); filter: brightness(1.1); }
 
-.palette-dot {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: white;
-}
+/* EXAM LAYOUT & NAV */
+.header { background: var(--primary); color: white; padding: 10px 20px; display: none; justify-content: space-between; align-items: center; height: 60px; }
+.main-layout { display: flex; width: 100%; height: calc(100vh - 60px); }
+.container { flex: 1; background: white; padding: 30px; overflow-y: auto; border-right: 1px solid #e2e8f0; }
 
-/* Button & Palette State Colors */
-.btn-pri { background: var(--primary); color: white; }
+.nav-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 40px; padding: 20px; border-top: 1px solid #e2e8f0; }
+.nav-bar button { height: 50px; font-weight: 700; border-radius: 8px; cursor: pointer; border: none; font-size: 0.85rem; }
+
 .btn-sec { background: #64748b; color: white; }
 .btn-rev { background: var(--review); color: white; }
 .btn-clear { background: var(--clear); color: #333; }
-.btn-danger { background: var(--danger); color: white; width: 100%; margin-top: 20px; height: 55px; border-radius: 10px; font-size: 1rem; border:none; cursor:pointer; font-weight: bold; }
+.btn-danger { background: var(--danger); color: white; width: 100%; margin-top: 20px; height: 55px; border-radius: 10px; border:none; cursor:pointer; font-weight: bold; }
 
-/* Leged Section */
-.legend-section { margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee; }
-.leg-row { display: flex; justify-content: space-between; margin-bottom: 12px; }
-.leg-item { display: flex; align-items: center; gap: 10px; font-size: 0.75rem; font-weight: 500; color: #475569; }
-.dot-leg { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #cbd5e1; }
+/* PALETTE */
+.palette { width: 320px; background: white; padding: 20px; display: flex; flex-direction: column; }
+#palette-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.palette-dot { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 6px; font-weight: 600; cursor: pointer; }
