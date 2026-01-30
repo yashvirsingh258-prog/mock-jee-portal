@@ -1,114 +1,211 @@
+// 1. INITIALIZE SUPABASE
 const supabaseUrl = 'https://ijxsnunkfhudwnkrwmzk.supabase.co';
 const supabaseKey = 'sb_publishable_V-KT1zvp-73dqHHvmx3fNA_iHw53TCl';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
+// 2. STATE MANAGEMENT
+let activeBank = [], 
+    currentIndex = 0, 
+    userAnswers = [], 
+    confirmedAnswered = [], 
+    markedForReview = [], 
+    timeLeft = 40 * 60, 
+    timerActive = false;
 let currentUserEmail = ""; 
 
+// 3. AUTHENTICATION
 window.handleLogin = async function() {
     const emailInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
+    if (!emailInput || !passInput) return;
+    
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
-    if (!email || !pass) { alert("Please enter credentials."); return; }
+    
+    if (!email || !pass) { 
+        alert("Please enter both email and password."); 
+        return; 
+    }
     
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-    if (error) alert("Login failed.");
-    else if (data.user) { 
+    
+    if (error) {
+        alert("Login failed: " + error.message);
+    } else if (data.user) { 
         currentUserEmail = data.user.email; 
         await fetchQuestionsAndStart(); 
     }
 };
 
+// 4. DATA FETCHING
 window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
-    const { data } = await supabaseClient.from('questions_table').select('test_name').eq('subject', sub);
-    if (data) testSelect.innerHTML = data.map(row => `<option value="${row.test_name}">${row.test_name}</option>`).join('');
+    
+    const { data, error } = await supabaseClient
+        .from('questions_table')
+        .select('test_name')
+        .eq('subject', sub);
+
+    if (!error && testSelect) {
+        testSelect.innerHTML = data.map(row => 
+            `<option value="${row.test_name}">${row.test_name}</option>`
+        ).join('');
+    }
 };
 
 async function fetchQuestionsAndStart() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
-    const { data } = await supabaseClient.from('questions_table').select('question_data').eq('subject', sub).eq('test_name', testName).single();
-    if (data) { activeBank = data.question_data; startExam(); }
+
+    const { data, error } = await supabaseClient
+        .from('questions_table')
+        .select('question_data')
+        .eq('subject', sub)
+        .eq('test_name', testName)
+        .single();
+
+    if (error || !data) {
+        alert("Could not load test questions.");
+        return;
+    }
+
+    activeBank = data.question_data; 
+    startExam();
 }
 
+// 5. CLOUD PERSISTENCE
 async function saveToCloud() {
     if (!currentUserEmail) return;
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
-    await supabaseClient.from('student_progress').upsert({ 
-        username: currentUserEmail, subject: sub, test_name: testName, current_index: currentIndex,
-        user_answers: [...userAnswers], confirmed_answered: [...confirmedAnswered], marked_for_review: [...markedForReview],
-        time_left: timeLeft, is_finished: false
-    }, { onConflict: 'username, subject, test_name' });
+    
+    const payload = { 
+        username: currentUserEmail, 
+        subject: sub, 
+        test_name: testName, 
+        current_index: currentIndex,
+        user_answers: [...userAnswers],
+        confirmed_answered: [...confirmedAnswered],
+        marked_for_review: [...markedForReview],
+        time_left: timeLeft, 
+        is_finished: false
+    };
+
+    await supabaseClient.from('student_progress').upsert(payload, { 
+        onConflict: 'username, subject, test_name' 
+    });
 }
+
+// 6. EXAM LOGIC
+window.setView = function(view) {
+    document.getElementById('login-screen').style.display = (view === 'login') ? 'flex' : 'none';
+    document.getElementById('exam-header').style.display = (view === 'exam') ? 'flex' : 'none';
+    document.getElementById('quiz-container').style.display = (view === 'exam') ? 'flex' : 'none';
+    document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
+};
 
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
-    const { data } = await supabaseClient.from('student_progress').select('*').eq('username', currentUserEmail).eq('subject', sub).eq('test_name', testName).maybeSingle();
+    
+    const { data } = await supabaseClient.from('student_progress')
+        .select('*')
+        .eq('username', currentUserEmail)
+        .eq('subject', sub)
+        .eq('test_name', testName)
+        .maybeSingle();
 
-    if (data && data.is_finished) { userAnswers = data.user_answers; showFinalResultOnly(); return; }
+    if (data && data.is_finished) {
+        userAnswers = data.user_answers;
+        showFinalResultOnly(); 
+        return;
+    }
 
-    if (data && confirm("Resume progress?")) {
-        currentIndex = data.current_index; userAnswers = data.user_answers;
-        confirmedAnswered = data.confirmed_answered; markedForReview = data.marked_for_review; timeLeft = data.time_left;
+    if (data && confirm("Resume existing progress?")) {
+        currentIndex = data.current_index;
+        userAnswers = data.user_answers;
+        confirmedAnswered = data.confirmed_answered;
+        markedForReview = data.marked_for_review;
+        timeLeft = data.time_left;
     } else {
         userAnswers = new Array(activeBank.length).fill("");
         confirmedAnswered = new Array(activeBank.length).fill(false);
         markedForReview = new Array(activeBank.length).fill(false);
     }
     
-    document.getElementById('exam-header').style.display = 'flex';
-    document.getElementById('quiz-container').style.display = 'flex';
-    document.getElementById('login-screen').style.display = 'none';
     document.getElementById('display-subject').innerText = `${sub.toUpperCase()} - ${testName}`;
-    renderPalette(); startTimer(); loadQuestion();
+    setView('exam'); 
+    renderPalette(); 
+    startTimer(); 
+    loadQuestion();
 };
 
 window.loadQuestion = function() {
-    const q = activeBank[currentIndex];
-    document.getElementById('question-area').innerHTML = `
+    const qData = activeBank[currentIndex];
+    const area = document.getElementById('question-area');
+    
+    area.innerHTML = `
         <div class="question-card">
-            <span class="q-num-badge">Question ${currentIndex + 1}</span>
-            <div style="font-size: 1.15rem; line-height: 1.6; margin-bottom: 25px;">${q.q}</div>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-                ${q.type === 'mcq' ? q.options.map(opt => `
-                    <label style="padding: 15px; border: 1px solid ${userAnswers[currentIndex] === opt ? 'var(--primary)' : '#e2e8f0'}; border-radius: 8px; cursor: pointer; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; transition: 0.2s;">
-                        <input type="radio" name="answer" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> ${opt}
-                    </label>`).join('') :
-                    `<input type="text" style="padding:15px; border-radius:8px; border:1px solid #ccc;" oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`
+            <div style="margin-bottom: 20px;">
+                <span style="background: var(--primary); color: white; padding: 6px 16px; border-radius: 6px; font-weight: bold; font-size: 0.9rem;">Question ${currentIndex + 1}</span>
+            </div>
+            <div style="font-size: 1.25rem; margin-bottom: 30px; color: #1e293b; line-height: 1.5;">${qData.q}</div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                ${qData.type === 'mcq' ? 
+                    qData.options.map(opt => `
+                        <label class="option-box ${userAnswers[currentIndex] === opt ? 'selected' : ''}">
+                            <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> ${opt}
+                        </label>`).join('') :
+                    `<input type="text" class="num-input" placeholder="Type answer..." oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`
                 }
             </div>
         </div>`;
-    updateStats(); updatePaletteUI();
+    
+    updateStats(); 
+    updatePaletteUI();
     if (window.MathJax) MathJax.typesetPromise();
 };
 
-window.saveAnswer = (val) => { userAnswers[currentIndex] = val; saveToCloud(); };
+window.saveAnswer = function(val) { userAnswers[currentIndex] = val; saveToCloud(); };
 
-window.saveAndNext = () => {
-    if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; }
-    if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
+window.saveAndNext = function() {
+    if (userAnswers[currentIndex] !== "") { 
+        confirmedAnswered[currentIndex] = true; 
+        markedForReview[currentIndex] = false; 
+    }
+    if (currentIndex < activeBank.length - 1) { 
+        currentIndex++; 
+        loadQuestion(); 
+    }
     saveToCloud();
 };
 
-window.prevQuestion = () => {
-    if (currentIndex > 0) { currentIndex--; loadQuestion(); saveToCloud(); }
+window.prevQuestion = function() {
+    if (currentIndex > 0) {
+        currentIndex--;
+        loadQuestion();
+        saveToCloud();
+    }
 };
 
-window.markForReview = () => {
+window.markForReview = function() {
     markedForReview[currentIndex] = true;
-    if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
-    else updatePaletteUI();
+    if (currentIndex < activeBank.length - 1) { 
+        currentIndex++; 
+        loadQuestion(); 
+    } else { 
+        updatePaletteUI(); 
+    }
     saveToCloud();
 };
 
-window.clearResponse = () => {
-    userAnswers[currentIndex] = ""; confirmedAnswered[currentIndex] = false; markedForReview[currentIndex] = false;
-    loadQuestion(); saveToCloud();
+window.clearResponse = function() {
+    userAnswers[currentIndex] = ""; 
+    confirmedAnswered[currentIndex] = false; 
+    markedForReview[currentIndex] = false;
+    loadQuestion(); 
+    saveToCloud();
 };
 
 function startTimer() {
@@ -121,42 +218,92 @@ function startTimer() {
     }, 1000);
 }
 
-window.confirmSubmit = () => { if (confirm("Submit?")) finalSubmission(); };
+window.confirmSubmit = function() { 
+    if (confirm("Are you sure you want to submit?")) finalSubmission(); 
+};
+
+// 7. SOLUTIONS & SUMMARY
+window.openDetailedSolution = function(idx) {
+    const q = activeBank[idx];
+    const solTab = window.open('', '_blank');
+    const content = `
+        <html>
+        <head>
+            <title>Solution Q${idx+1}</title>
+            <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+            <style>
+                body { font-family: sans-serif; padding: 40px; background: #f8fafc; line-height: 1.6; }
+                .container { max-width: 800px; margin: auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                .q-box { background:#f1f5f9; padding:20px; border-radius: 12px; border-left:6px solid #0b4a8f; margin-bottom: 30px;}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h2>Question ${idx+1} Solution</h2>
+                <div class="q-box">${q.q}</div>
+                <div>${q.solution}</div>
+                <h3 style="color:#2d8c3c;">Correct Answer: ${q.correct}</h3>
+            </div>
+        </body>
+        </html>`;
+    solTab.document.write(content);
+    solTab.document.close();
+};
 
 function showFinalResultOnly() {
     timerActive = false; 
     let score = 0;
-    const rows = activeBank.map((q, i) => {
-        const isCorrect = userAnswers[i] == q.correct;
+    const total = activeBank.length;
+    
+    let tableRows = activeBank.map((q, i) => {
+        const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
-        return `<tr>
-            <td style="font-weight:bold;">${i+1}</td>
-            <td>${q.q}</td>
-            <td><span style="color:${isCorrect ? 'green' : 'red'}; font-weight:bold;">${userAnswers[i] || 'N/A'}</span></td>
-            <td style="font-weight:bold; color:var(--primary);">${q.correct}</td>
-            <td><button class="btn-pri" style="height:35px; padding:0 15px;" onclick="openDetailedSolution(${i})">Solution</button></td>
-        </tr>`;
+        return `
+            <tr>
+                <td style="font-weight:bold; color:var(--primary); text-align:center;">${i+1}</td>
+                <td style="color:#334155;">${q.q}</td>
+                <td style="text-align:center;"><span style="color:${isCorrect ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${userAnswers[i] || 'N/A'}</span></td>
+                <td style="text-align:center; font-weight:bold; color:var(--primary);">${q.correct}</td>
+                <td style="text-align:center;">
+                    <button class="btn-pri" style="padding:8px 15px; border-radius:6px; font-size:0.8rem; cursor:pointer;" onclick="openDetailedSolution(${i})">View Solution</button>
+                </td>
+            </tr>`;
     }).join('');
 
-    document.getElementById('quiz-container').style.display = 'none';
-    document.getElementById('exam-header').style.display = 'none';
-    document.getElementById('result-screen').style.display = 'block';
-    document.getElementById('score-val').innerHTML = `<div class="score-circle"><span class="num">${score}</span><span style="font-size:0.8rem; color:#64748b;">Out of ${activeBank.length}</span></div>`;
-    document.getElementById('review-panel').innerHTML = `<table class="result-table"><thead><tr><th>Q.No</th><th>Question</th><th>Your Ans</th><th>Correct</th><th>Action</th></tr></thead><tbody>${rows}</tbody></table>`;
+    setView('result');
+    document.getElementById('result-screen').innerHTML = `
+        <div class="summary-container">
+            <div class="result-header-card">
+                <h1 style="margin:0; font-size:2.5rem;">Test Summary</h1>
+                <div style="font-size:3rem; font-weight:800; margin-top:20px;">${score} <span style="font-size:1.2rem; opacity:0.7;">/ ${total}</span></div>
+            </div>
+            <table class="result-table">
+                <thead><tr><th>#</th><th>Question</th><th>Your Ans</th><th>Correct</th><th>Action</th></tr></thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+            <button class="btn-sec" style="width:100%; padding:15px; margin-top:20px; cursor:pointer;" onclick="location.reload()">Back to Dashboard</button>
+        </div>`;
     if (window.MathJax) MathJax.typesetPromise();
 }
 
 window.finalSubmission = async function() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
-    await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, subject: sub, test_name: testName, is_finished: true, user_answers: [...userAnswers], time_left: 0 }, { onConflict: 'username, subject, test_name' });
-    showFinalResultOnly();
+    const { error } = await supabaseClient.from('student_progress').upsert({ 
+        username: currentUserEmail, subject: sub, test_name: testName, is_finished: true, 
+        user_answers: [...userAnswers], time_left: 0
+    }, { onConflict: 'username, subject, test_name' });
+    
+    if (!error) showFinalResultOnly();
 };
 
+// 8. UI HELPERS
 function renderPalette() {
-    document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `<div id="dot-${i}" class="dot" onclick="jumpTo(${i})">${i+1}</div>`).join('');
+    document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
+        <div id="dot-${i}" class="dot" onclick="jumpTo(${i})">${i+1}</div>`).join('');
 }
-window.jumpTo = (i) => { currentIndex = i; loadQuestion(); saveToCloud(); };
+
+window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
 
 function updatePaletteUI() {
     activeBank.forEach((_, i) => {
