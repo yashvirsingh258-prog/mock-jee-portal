@@ -11,14 +11,14 @@
 body { font-family: 'Segoe UI', sans-serif; margin: 0; background: var(--gray); overflow-x: hidden; }
 .no-select { user-select: none; }
 
-/* LOGIN - UNCHANGED AS REQUESTED */
+/* LOGIN PAGE - STRICTLY RETAINED */
 #login-screen { position: fixed; inset: 0; background: white; display: flex; justify-content: center; align-items: center; z-index: 1000; }
 .login-card { border: 1px solid #ddd; padding: 30px; border-radius: 12px; width: 360px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
 .field-label { display: block; text-align: left; font-size: 0.85rem; margin-top: 10px; font-weight: bold; color: #555; }
 input, select { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
 
-/* HEADER & GOLD TIMER */
-.header { background: var(--primary); color: white; padding: 10px 20px; display: none; justify-content: space-between; align-items: center; height: 60px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+/* PREMIUM HEADER & GOLD TIMER */
+.header { background: var(--primary); color: white; padding: 10px 20px; display: none; justify-content: space-between; align-items: center; height: 60px; }
 #timer-box { font-family: monospace; font-size: 1.3rem; color: gold; background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 4px; border: 1px solid gold; font-weight: bold; }
 
 /* EXAM CARD VIEW */
@@ -43,7 +43,7 @@ input, select { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1px so
 .option-box:hover { background: #f8fafc; border-color: var(--primary); transform: translateX(5px); }
 .option-box.selected { background: #f0f7ff; border-color: var(--primary); font-weight: 600; }
 
-/* QUESTION PALETTE - RESTORED JEE SHAPES */
+/* RESTORED JEE PALETTE SHAPES */
 #palette-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 15px; }
 .dot { height: 40px; width: 44px; background: #eee; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.9rem; font-weight: 600; transition: transform 0.2s; }
 .dot:hover { transform: scale(1.1); z-index: 5; }
@@ -54,17 +54,13 @@ input, select { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1px so
 .dot.review { background: var(--review) !important; color: white !important; border-radius: 50%; border: none; }
 .dot.active { border: 2.5px solid var(--primary); box-shadow: 0 0 10px rgba(11, 74, 143, 0.3); }
 
-/* PREMIUM SUMMARY PAGE */
+/* MODERN SUMMARY PAGE */
 .summary-container { max-width: 1000px; margin: 40px auto; padding: 20px; }
 .result-header-card { 
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); 
     color: white; padding: 40px; border-radius: 20px; text-align: center; margin-bottom: 30px;
-    box-shadow: 0 10px 25px rgba(11, 74, 143, 0.2);
 }
 .result-table { width: 100%; border-collapse: separate; border-spacing: 0 10px; }
 .result-table tr { background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.03); transition: transform 0.2s; }
 .result-table tr:hover { transform: scale(1.01); }
 .result-table td, .result-table th { padding: 15px; border: none; }
-.result-table th { color: #64748b; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
-.result-table td:first-child { border-radius: 10px 0 0 10px; }
-.result-table td:last-child { border-radius: 0 10px 10px 0; }
