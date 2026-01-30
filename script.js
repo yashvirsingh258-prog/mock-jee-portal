@@ -151,15 +151,12 @@ window.loadQuestion = function() {
             ${qData.type === 'mcq' ? qData.options.map((opt, i) => {
                 const isSelected = String(opt) === String(savedAnswer);
                 return `
-                <label style="padding: 15px; border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; background: ${isSelected ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
-                    <input type="radio" name="q-group-${currentIndex}" value="${opt}" 
-                        onchange="saveAnswer('${opt}')" 
-                        ${isSelected ? 'checked' : ''}> 
+                <label onclick="handleSelection(event, '${opt}')" style="padding: 15px; border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; background: ${isSelected ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer; display: block;">
+                    <input type="radio" name="q-group" value="${opt}" ${isSelected ? 'checked' : ''} style="pointer-events: none;"> 
                     ${opt}
                 </label>`;
             }).join('') : `
-                <input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" 
-                    oninput="saveAnswer(this.value)" value="${savedAnswer}">`
+                <input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)" value="${savedAnswer}">`
             }
         </div>
     </div>`;
@@ -172,22 +169,36 @@ window.loadQuestion = function() {
 window.saveAnswer = function(val) {
     userAnswers[currentIndex] = val;
     
-    // Update labels visually without re-rendering the whole HTML
+    // Manual color update
     const labels = document.querySelectorAll('#options-container label');
-    labels.forEach(label => {
-        const input = label.querySelector('input');
-        if (input && input.value === val) {
-            label.style.border = '1.5px solid #0b4a8f';
-            label.style.background = '#f0f7ff';
+    labels.forEach(l => {
+        const r = l.querySelector('input');
+        if (r && r.value === val) {
+            l.style.border = '1.5px solid #0b4a8f';
+            l.style.background = '#f0f7ff';
         } else {
-            label.style.border = '1px solid #ddd';
-            label.style.background = '#fff';
+            l.style.border = '1px solid #ddd';
+            l.style.background = '#fff';
         }
     });
 
     updateStats();
-    updatePaletteUI(); // This turns the palette green immediately
+    updatePaletteUI();
     saveToCloud();
+};
+
+window.handleSelection = function(event, val) {
+    // Prevent the "Double Click" bug where the label and radio both fire
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Physically find the radio inside the clicked label and check it
+    const label = event.currentTarget;
+    const radio = label.querySelector('input');
+    if (radio) radio.checked = true;
+
+    // Save the answer
+    saveAnswer(val);
 };
 
 window.saveAndNext = function() { if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; } if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); } saveToCloud(); };
