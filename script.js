@@ -7,8 +7,8 @@ const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. MATHJAX CONFIGURATION
-// This configuration block is mandatory to ensure $ signs are recognized
+// 3. MANDATORY MATHJAX CONFIGURATION
+// This must be set BEFORE MathJax loads to tell it to look for $ symbols
 window.MathJax = {
     tex: {
         inlineMath: [['$', '$'], ['\\(', '\\)']],
@@ -20,23 +20,22 @@ window.MathJax = {
     }
 };
 
-// 4. THE CLEANER: This is the missing piece. 
-// It ensures that even if the DB has double or quadruple slashes, 
-// they are converted to a single slash that MathJax can read.
+// 4. THE SUPER-CLEANER (The most important part)
+// This function fixes the "No Luck" issue by forcing the backslashes to exist
 function cleanMath(str) {
     if (!str) return "";
     return str
-        .replace(/\\\\\\\\/g, '\\') // Fixes quadruple slashes
+        .replace(/\\\\\\\\/g, '\\') // Fixes quadruple slashes from DB
         .replace(/\\\\/g, '\\')     // Fixes double slashes
-        .replace(/\\n/g, '<br>');   // Fixes line breaks for vertical steps
+        .replace(/\\n/g, '\n');     // Fixes step-by-step line breaks
 }
 
 function refreshMath(element) {
     if (window.MathJax && window.MathJax.typesetPromise) {
-        // We use a slight delay to ensure the HTML is fully rendered in the DOM
+        // 200ms delay to ensure the browser has finished 'painting' the text
         setTimeout(() => {
             window.MathJax.typesetPromise([element]).catch((err) => console.log('MathJax Error:', err));
-        }, 150);
+        }, 200);
     }
 }
 
@@ -45,21 +44,21 @@ window.handleLogin = async function() {
     const emailInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
     const statusMsg = document.getElementById('auth-status-msg');
-    if (!emailInput || !passInput) return;
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
     
     const testSelect = document.getElementById('test-name-select');
     const testName = testSelect ? testSelect.value : "";
-    if (!testName || testName === "Loading...") {
-        if(statusMsg) statusMsg.innerText = "Please select a test.";
+    
+    if (!email || !pass || testName === "Loading...") {
+        if(statusMsg) statusMsg.innerText = "Check credentials/test selection.";
         return;
     }
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
     if (error) {
-        if(statusMsg) statusMsg.innerText = "Login failed: Invalid credentials.";
-    } else if (data.user) { 
+        if(statusMsg) statusMsg.innerText = "Login failed.";
+    } else { 
         currentUserEmail = data.user.email;
         await fetchQuestionsAndStart(); 
     }
@@ -70,7 +69,7 @@ window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // Applying the cleanMath function to every piece of text
+    // Applying the Super-Cleaner to the Question and Options
     const displayQ = cleanMath(qData.q);
     const displayOptions = qData.options.map(opt => cleanMath(opt));
 
@@ -97,7 +96,7 @@ window.loadQuestion = function() {
     refreshMath(area);
 };
 
-// 7. DETAILED SOLUTION (FIXING STEPS)
+// 7. DETAILED SOLUTION (FIXING VERTICAL STEPS)
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
@@ -110,16 +109,15 @@ window.openDetailedSolution = function(idx) {
         </script>
         <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <style>
-            body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; color: #1e293b; }
-            .card { background: white; max-width: 800px; margin: auto; padding: 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+            body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; line-height: 1.6; }
+            .card { background: white; max-width: 850px; margin: auto; padding: 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
             .sol-box { 
                 white-space: pre-wrap; 
                 background: #f1f5f9; 
                 padding: 30px; 
                 border-radius: 12px; 
                 border-left: 6px solid #0b4a8f; 
-                margin: 20px 0; 
-                line-height: 2;
+                margin: 25px 0; 
                 font-size: 1.1rem;
             }
         </style></head>
@@ -137,7 +135,7 @@ window.openDetailedSolution = function(idx) {
     solTab.document.close();
 };
 
-// 8. DATA FETCHING & FLOW
+// 8. DATA FLOW (Preserved)
 async function fetchQuestionsAndStart() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
