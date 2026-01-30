@@ -137,9 +137,8 @@ window.startExam = async function() {
 window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
-    const savedAnswer = userAnswers[currentIndex];
+    const savedAnswer = userAnswers[currentIndex] || "";
 
-    // Build the UI
     area.innerHTML = `
     <div style="padding: 20px 50px;">
         <div style="margin-bottom: 20px;">
@@ -149,31 +148,21 @@ window.loadQuestion = function() {
         </div>
         <div style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
         <div id="options-container" style="display: flex; flex-direction: column; gap: 10px;">
-            ${qData.type === 'mcq' ? qData.options.map((opt, i) => `
-                <label id="label-${i}" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
-                    <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}')"> 
+            ${qData.type === 'mcq' ? qData.options.map((opt, i) => {
+                const isSelected = String(opt) === String(savedAnswer);
+                return `
+                <label style="padding: 15px; border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; background: ${isSelected ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
+                    <input type="radio" name="q-group-${currentIndex}" value="${opt}" 
+                        onchange="saveAnswer('${opt}')" 
+                        ${isSelected ? 'checked' : ''}> 
                     ${opt}
-                </label>`).join('') : `
-                <input type="text" id="text-ans" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)">`
+                </label>`;
+            }).join('') : `
+                <input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" 
+                    oninput="saveAnswer(this.value)" value="${savedAnswer}">`
             }
         </div>
     </div>`;
-
-    // BRUTE FORCE SYNC: Manually check the button after HTML is injected
-    if (savedAnswer !== undefined && savedAnswer !== "") {
-        const inputs = area.querySelectorAll('input[name="answer"]');
-        inputs.forEach(input => {
-            if (input.value === savedAnswer) {
-                input.checked = true;
-                const label = input.parentElement;
-                label.style.border = '1.5px solid #0b4a8f';
-                label.style.background = '#f0f7ff';
-            }
-        });
-        
-        const textInput = document.getElementById('text-ans');
-        if (textInput) textInput.value = savedAnswer;
-    }
 
     updateStats(); 
     updatePaletteUI();
@@ -183,7 +172,7 @@ window.loadQuestion = function() {
 window.saveAnswer = function(val) {
     userAnswers[currentIndex] = val;
     
-    // Update labels visually without re-rendering
+    // Update labels visually without re-rendering the whole HTML
     const labels = document.querySelectorAll('#options-container label');
     labels.forEach(label => {
         const input = label.querySelector('input');
@@ -197,7 +186,7 @@ window.saveAnswer = function(val) {
     });
 
     updateStats();
-    updatePaletteUI();
+    updatePaletteUI(); // This turns the palette green immediately
     saveToCloud();
 };
 
