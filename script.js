@@ -137,44 +137,54 @@ window.startExam = async function() {
 window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
-    
-    // Get the saved answer and force it to a string for reliable comparison
-    const savedAnswer = userAnswers[currentIndex] !== undefined ? String(userAnswers[currentIndex]) : "";
+    const savedAnswer = userAnswers[currentIndex];
 
-    area.innerHTML = `<div style="padding: 20px 50px;">
+    // Build the UI
+    area.innerHTML = `
+    <div style="padding: 20px 50px;">
         <div style="margin-bottom: 20px;">
             <span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">
                 Question ${currentIndex + 1}
             </span>
         </div>
         <div style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            ${qData.type === 'mcq' ? qData.options.map(opt => {
-                const isChecked = String(opt) === savedAnswer;
-                return `
-                <label style="padding: 15px; border: 1.5px solid ${isChecked ? '#0b4a8f' : '#ddd'}; background: ${isChecked ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
-                    <input type="radio" name="answer" value="${opt}" 
-                        onchange="saveAnswer('${opt}')" 
-                        ${isChecked ? 'checked' : ''}> 
+        <div id="options-container" style="display: flex; flex-direction: column; gap: 10px;">
+            ${qData.type === 'mcq' ? qData.options.map((opt, i) => `
+                <label id="label-${i}" style="padding: 15px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer;">
+                    <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}')"> 
                     ${opt}
-                </label>`;
-            }).join('') : `
-                <input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" 
-                    oninput="saveAnswer(this.value)" value="${savedAnswer}">`
+                </label>`).join('') : `
+                <input type="text" id="text-ans" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)">`
             }
         </div>
     </div>`;
-    
+
+    // BRUTE FORCE SYNC: Manually check the button after HTML is injected
+    if (savedAnswer !== undefined && savedAnswer !== "") {
+        const inputs = area.querySelectorAll('input[name="answer"]');
+        inputs.forEach(input => {
+            if (input.value === savedAnswer) {
+                input.checked = true;
+                const label = input.parentElement;
+                label.style.border = '1.5px solid #0b4a8f';
+                label.style.background = '#f0f7ff';
+            }
+        });
+        
+        const textInput = document.getElementById('text-ans');
+        if (textInput) textInput.value = savedAnswer;
+    }
+
     updateStats(); 
     updatePaletteUI();
     if (window.MathJax) MathJax.typesetPromise();
 };
 
 window.saveAnswer = function(val) {
-    userAnswers[currentIndex] = val; // Save the value
+    userAnswers[currentIndex] = val;
     
-    // Manually update the borders so the user sees the click
-    const labels = document.querySelectorAll('#question-area label');
+    // Update labels visually without re-rendering
+    const labels = document.querySelectorAll('#options-container label');
     labels.forEach(label => {
         const input = label.querySelector('input');
         if (input && input.value === val) {
@@ -186,9 +196,9 @@ window.saveAnswer = function(val) {
         }
     });
 
-    updateStats(); 
-    updatePaletteUI(); // This makes the side palette turn green
-    saveToCloud();     // Sync with Supabase
+    updateStats();
+    updatePaletteUI();
+    saveToCloud();
 };
 
 window.saveAndNext = function() { if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; } if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); } saveToCloud(); };
