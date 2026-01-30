@@ -87,10 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
 function cleanMath(str) {
     if (!str) return "";
     return str
-        .replace(/\\\\\\\\/g, '\\') // Fixes quadruple slashes
-        .replace(/\\\\/g, '\\')     // Fixes double slashes
-        .replace(/\\n/g, '<br>')    // FIX: Converts the text "\n" into an HTML line break
-        .replace(/\n/g, '<br>');    // Fallback for literal newlines
+        .replace(/\\\\/g, '\\')      // Fixes double backslashes
+        .replace(/\\n/g, '<br/>')   // Converts the string "\n" into a line break
+        .replace(/\n/g, '<br/>');    // Converts actual keyboard enters into line breaks
 }
 
 // 5. DATA LOGIC
