@@ -19,22 +19,22 @@ window.MathJax = {
     }
 };
 
-// 4. THE REFINED CLEANER
-// Adjusted to specifically handle the double-escaping found in your CSV data
+// 4. THE FINAL CLEANER
+// This version is specifically tuned to your CSV data structure
 function cleanMath(str) {
     if (!str) return "";
     return str
-        .replace(/\\\\/g, '\\')     // Converts double slashes (\\int) to single (\int)
-        .replace(/\\n/g, '<br>');   // Converts \\n to HTML breaks for vertical solution steps
+        .replace(/\\\\\\\\/g, '\\') // Fixes quadruple slashes
+        .replace(/\\\\/g, '\\')     // Fixes double slashes
+        .replace(/\\n/g, '<br>')    // Converts the string "\n" into an actual HTML line break
+        .replace(/\n/g, '<br>');    // Converts real newlines into HTML line breaks
 }
 
 function refreshMath(element) {
     if (window.MathJax && window.MathJax.typesetPromise) {
-        // A 300ms delay ensures the new HTML is fully settled in the DOM before rendering
         setTimeout(() => {
             window.MathJax.typesetPromise([element])
                 .then(() => {
-                    // Double-pass ensures no symbols are missed during fast navigation
                     return window.MathJax.typesetPromise([element]);
                 })
                 .catch((err) => console.log('MathJax Error:', err));
@@ -72,7 +72,6 @@ window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // Applying the updated cleaner to ensure symbols render correctly from the DB
     const displayQ = cleanMath(qData.q);
     const displayOptions = qData.options.map(opt => cleanMath(opt));
 
@@ -86,8 +85,8 @@ window.loadQuestion = function() {
             <div style="font-size: 1.35rem; margin-bottom: 30px; line-height: 1.8; color: #1e293b;">${displayQ}</div>
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 ${qData.options.map((opt, i) => `
-                    <label style="padding: 16px; border: 1.5px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#e2e8f0'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
-                        <input type="radio" name="answer" value="${opt}" onchange="saveAnswer(this.value); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> 
+                    <label style="padding: 16px; border: 1.5px solid ${userAnswers[currentIndex] === qData.options[i] ? '#0b4a8f' : '#e2e8f0'}; background: ${userAnswers[currentIndex] === qData.options[i] ? '#f0f7ff' : '#fff'}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                        <input type="radio" name="answer" value="${qData.options[i]}" onchange="saveAnswer(this.value); loadQuestion();" ${userAnswers[currentIndex] === qData.options[i] ? 'checked' : ''}> 
                         <span style="margin-left: 10px; font-size: 1.1rem;">${displayOptions[i]}</span>
                     </label>
                 `).join('')}
@@ -99,14 +98,14 @@ window.loadQuestion = function() {
     refreshMath(area);
 };
 
-// 7. DETAILED SOLUTION (FIXING VERTICAL STEPS)
+// 7. DETAILED SOLUTION (FIXED FOR VERTICAL STEPS)
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
     
-    solTab.document.write(`
+    solTab.document.write(\`
         <html><head>
-        <title>Solution - Question ${idx+1}</title>
+        <title>Solution - Question \${idx+1}</title>
         <script>
             window.MathJax = { tex: { inlineMath: [['$', '$']] } };
         </script>
@@ -121,20 +120,20 @@ window.openDetailedSolution = function(idx) {
                 border-left: 6px solid #0b4a8f; 
                 margin: 25px 0; 
                 font-size: 1.15rem;
-                line-height: 2;
+                line-height: 2.2; /* Increased for math readability */
             }
         </style></head>
         <body class="tex2jax_process">
             <div class="card">
                 <h2 style="color: #0b4a8f;">Step-by-Step Solution</h2>
-                <div style="font-size: 1.3rem; margin-bottom: 20px;">${cleanMath(q.q)}</div>
-                <div class="sol-box">${cleanMath(q.solution)}</div>
+                <div style="font-size: 1.3rem; margin-bottom: 20px;">\${cleanMath(q.q)}</div>
+                <div class="sol-box">\${cleanMath(q.solution)}</div>
                 <div style="font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 15px 25px; border-radius: 10px; display: inline-block;">
-                    Correct Answer: ${cleanMath(q.correct)}
+                    Correct Answer: \${cleanMath(q.correct)}
                 </div>
             </div>
         </body></html>
-    `);
+    \`);
     solTab.document.close();
 };
 
@@ -171,7 +170,6 @@ window.updateTestNames = async function() {
     select.innerHTML = data && data.length ? data.map(d => \`<option value="\${d.test_name}">\${d.test_name}</option>\`).join('') : '<option>No tests found</option>';
 };
 
-// Initial call to load tests on page load
 window.onload = () => { updateTestNames(); };
 
 // 10. NAVIGATION & PROGRESS
@@ -212,11 +210,11 @@ function showFinalResultOnly() {
     res.style.display = 'block';
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('exam-header').style.display = 'none';
-    res.innerHTML = `<div class="tex2jax_process" style="padding:100px; text-align:center;">
+    res.innerHTML = \`<div class="tex2jax_process" style="padding:100px; text-align:center;">
         <h2 style="font-size: 2.5rem; color: #0b4a8f; margin-bottom: 20px;">Examination Complete</h2>
         <p style="color: #64748b; font-size: 1.2rem; margin-bottom: 40px;">Your responses have been recorded successfully.</p>
         <button onclick="openDetailedSolution(0)" style="background: #0b4a8f; color: white; border: none; padding: 18px 45px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 1.1rem;">VIEW SOLUTIONS</button>
-    </div>`;
+    </div>\`;
     refreshMath(res);
 }
 
