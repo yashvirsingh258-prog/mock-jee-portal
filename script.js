@@ -8,6 +8,7 @@ let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [],
 let currentUserEmail = ""; 
 
 // 3. MATHJAX CONFIGURATION
+// This forces the browser to recognize the $ delimiter which is missing in standard configs
 window.MathJax = {
     tex: {
         inlineMath: [['$', '$'], ['\\(', '\\)']],
@@ -18,18 +19,21 @@ window.MathJax = {
     }
 };
 
-// 4. HELPER: DATA CLEANING & RENDERING
-// This function cleans the extra backslashes often added by JSON stringification
-function cleanMathString(str) {
+// 4. THE "MAGIC" CLEANER
+// This function takes your Supabase data (\\\\\\\\int) and turns it into (\int)
+function fixMathFormatting(str) {
     if (!str) return "";
-    return str.replace(/\\\\\\\\/g, '\\').replace(/\\\\/g, '\\');
+    // Step 1: Replace quadruple/double backslashes with single ones
+    let cleaned = str.replace(/\\\\\\\\/g, '\\').replace(/\\\\/g, '\\');
+    // Step 2: Ensure \n is treated as a real newline for the solution box
+    return cleaned;
 }
 
 function refreshMath(element) {
     if (window.MathJax && window.MathJax.typesetPromise) {
         setTimeout(() => {
             window.MathJax.typesetPromise([element]).catch((err) => console.log('MathJax Error:', err));
-        }, 100);
+        }, 150);
     }
 }
 
@@ -64,9 +68,9 @@ window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // Clean data for rendering
-    const cleanQ = cleanMathString(qData.q);
-    const cleanOpts = qData.options.map(opt => cleanMathString(opt));
+    // Applying the cleaner to the question and all options
+    const cleanQuestion = fixMathFormatting(qData.q);
+    const cleanOptions = qData.options.map(opt => fixMathFormatting(opt));
 
     area.innerHTML = `
         <div class="tex2jax_process" style="padding: 20px 50px;">
@@ -75,9 +79,9 @@ window.loadQuestion = function() {
                     Question ${currentIndex + 1}
                 </span>
             </div>
-            <div style="font-size: 1.3rem; margin-bottom: 25px; line-height: 1.6;">${cleanQ}</div>
+            <div style="font-size: 1.3rem; margin-bottom: 25px; line-height: 1.8;">${cleanQuestion}</div>
             <div style="display: flex; flex-direction: column; gap: 12px;">
-                ${cleanOpts.map((opt, i) => `
+                ${cleanOptions.map((opt, i) => `
                     <label style="padding: 15px; border: 1.5px solid ${userAnswers[currentIndex] === qData.options[i] ? '#0b4a8f' : '#e2e8f0'}; background: ${userAnswers[currentIndex] === qData.options[i] ? '#f0f7ff' : '#fff'}; border-radius: 10px; cursor: pointer;">
                         <input type="radio" name="answer" value="${qData.options[i]}" onchange="saveAnswer(this.value); loadQuestion();" ${userAnswers[currentIndex] === qData.options[i] ? 'checked' : ''}> 
                         <span style="margin-left: 10px;">${opt}</span>
@@ -91,13 +95,13 @@ window.loadQuestion = function() {
     refreshMath(area);
 };
 
-// 7. DETAILED SOLUTION (FIXING STEPS & SYMBOLS)
+// 7. DETAILED SOLUTION (FIXING VERTICAL STEPS)
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
     
-    // Process newlines specifically for the solution box
-    const cleanSolBody = cleanMathString(q.solution).replace(/\\n/g, '\n');
+    // We clean the math and then convert the \n string into a real browser line break
+    const solutionContent = fixMathFormatting(q.solution).replace(/\\n/g, '\n');
 
     solTab.document.write(`
         <html><head>
@@ -107,23 +111,23 @@ window.openDetailedSolution = function(idx) {
             body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; color: #1e293b; }
             .card { background: white; max-width: 850px; margin: auto; padding: 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
             .sol-box { 
-                white-space: pre-wrap; /* Critical for Step-by-Step Layout */
+                white-space: pre-wrap; /* THIS IS THE KEY FOR STEPS */
                 background: #f1f5f9; 
                 padding: 30px; 
                 border-radius: 12px; 
                 border-left: 6px solid #0b4a8f; 
-                margin: 25px 0; 
-                line-height: 1.8;
+                margin: 20px 0; 
+                line-height: 2;
                 font-size: 1.1rem;
             }
         </style></head>
         <body class="tex2jax_process">
             <div class="card">
                 <h2 style="color: #0b4a8f;">Step-by-Step Solution</h2>
-                <div style="font-size: 1.3rem;">${cleanMathString(q.q)}</div>
-                <div class="sol-box">${cleanSolBody}</div>
+                <div style="font-size: 1.3rem; margin-bottom: 20px;">${fixMathFormatting(q.q)}</div>
+                <div class="sol-box">${solutionContent}</div>
                 <div style="font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 15px; border-radius: 10px; display: inline-block;">
-                    Correct Key: ${cleanMathString(q.correct)}
+                    Correct Answer: ${fixMathFormatting(q.correct)}
                 </div>
             </div>
         </body></html>
@@ -131,7 +135,7 @@ window.openDetailedSolution = function(idx) {
     solTab.document.close();
 };
 
-// 8. DATA FETCHING & EXAM FLOW
+// 8. FLOW LOGIC
 async function fetchQuestionsAndStart() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
