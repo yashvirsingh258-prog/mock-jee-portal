@@ -137,6 +137,8 @@ window.startExam = async function() {
 window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
+    
+    // Get current stored answer for this index
     const currentSelection = userAnswers[currentIndex] || "";
 
     area.innerHTML = `<div style="padding: 20px 50px;">
@@ -147,13 +149,18 @@ window.loadQuestion = function() {
         </div>
         <div style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
         <div style="display: flex; flex-direction: column; gap: 10px;">
-            ${qData.type === 'mcq' ? qData.options.map(opt => `
-                <label style="padding: 15px; border: 1px solid ${currentSelection === opt ? '#0b4a8f' : '#ddd'}; background: ${currentSelection === opt ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
+            ${qData.type === 'mcq' ? qData.options.map(opt => {
+                // Determine if this specific option matches what is saved
+                const isSelected = (String(opt) === String(currentSelection));
+                
+                return `
+                <label style="padding: 15px; border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; background: ${isSelected ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
                     <input type="radio" name="answer" value="${opt}" 
                         onchange="saveAnswer('${opt}')" 
-                        ${currentSelection === opt ? 'checked' : ''}> 
+                        ${isSelected ? 'checked="checked"' : ''}> 
                     ${opt}
-                </label>`).join('') : `
+                </label>`;
+            }).join('') : `
                 <input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" 
                     oninput="saveAnswer(this.value)" value="${currentSelection}">`
             }
@@ -162,7 +169,9 @@ window.loadQuestion = function() {
     
     updateStats(); 
     updatePaletteUI();
-    if (window.MathJax) MathJax.typesetPromise();
+    if (window.MathJax) {
+        MathJax.typesetPromise();
+    }
 };
 
 window.saveAnswer = function(val) {
