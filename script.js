@@ -17,7 +17,7 @@ window.handleLogin = async function() {
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
     
-    // Check credentials logic
+    // Updated: No alert, shows message in portal
     if (!email || !pass) { 
         if(statusMsg) statusMsg.innerText = "Please enter credentials.";
         return; 
@@ -83,28 +83,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="auth-status-msg" style="margin-top: 20px; color: #e11d48; font-size: 13px; font-weight: 600; text-align: center; min-height: 20px;"></div>
             </div>`;
         
-        // Populate tests immediately for the default subject
-        updateTestNames();
+        setTimeout(updateTestNames, 500); // Small delay ensures DOM is ready
     }
 });
 
-// 4. DATA LOGIC - ENSURE TESTS ARE FETCHED
+// 4. DATA LOGIC - RE-FIXED TO POPULATE DROPDOWN
 window.updateTestNames = async function() {
-    const sub = document.getElementById('subject-select').value;
+    const subSelect = document.getElementById('subject-select');
     const testSelect = document.getElementById('test-name-select');
-    if (!testSelect) return;
+    if (!subSelect || !testSelect) return;
     
-    // Direct fetch from questions_table based on subject
+    const sub = subSelect.value;
+    
     const { data, error } = await supabaseClient
         .from('questions_table')
         .select('test_name')
         .eq('subject', sub);
     
     if (error) {
-        testSelect.innerHTML = `<option>Error loading tests</option>`;
-        console.error("Fetch Error:", error);
+        console.error("Supabase Error:", error);
+        testSelect.innerHTML = `<option>Error connecting...</option>`;
     } else if (data && data.length > 0) {
-        // Remove duplicates and populate
         const uniqueTests = [...new Set(data.map(item => item.test_name))];
         testSelect.innerHTML = uniqueTests.map(name => `<option value="${name}">${name}</option>`).join('');
     } else {
@@ -121,7 +120,7 @@ async function fetchQuestionsAndStart() {
     startExam();
 }
 
-// 5. EXAM LOGIC
+// 5. EXAM LOGIC (UNCHANGED)
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
@@ -171,29 +170,7 @@ async function saveToCloud() { if (!currentUserEmail) return; const sub = docume
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
-    solTab.document.write(`
-        <html>
-        <head>
-            <title>Solution</title>
-            <script>window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']] } };</script>
-            <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-            <style>
-                body { font-family: 'Inter', sans-serif; background: #ffffff; padding: 40px; line-height: 1.6; }
-                .premium-card { max-width: 800px; margin: auto; border: 1px solid #e2e8f0; border-radius: 24px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-                .q-text { font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 25px; }
-                .sol-box { background: #f8fafc; padding: 25px; border-radius: 16px; border-left: 5px solid #0b4a8f; margin: 20px 0; font-size: 1.1rem; }
-            </style>
-        </head>
-        <body>
-            <div class="premium-card">
-                <div style="color:#0b4a8f; font-weight:800; text-transform:uppercase; font-size:0.8rem; margin-bottom:10px;">Question ${idx+1} Solution</div>
-                <div class="q-text">${q.q}</div>
-                <div class="sol-box">${q.solution}</div>
-                <div style="font-weight:800; color:#16a34a; background:#f0fdf4; padding:15px; border-radius:12px; display:inline-block;">Correct Key: ${q.correct}</div>
-            </div>
-        </body>
-        </html>
-    `);
+    solTab.document.write(`<html><head><title>Solution</title><script>window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']] } };</script><script src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\"></script><style>body { font-family: 'Inter', sans-serif; background: #ffffff; padding: 40px; line-height: 1.6; }.premium-card { max-width: 800px; margin: auto; border: 1px solid #e2e8f0; border-radius: 24px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }.q-text { font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 25px; }.sol-box { background: #f8fafc; padding: 25px; border-radius: 16px; border-left: 5px solid #0b4a8f; margin: 20px 0; font-size: 1.1rem; }</style></head><body><div class=\"premium-card\"><div style=\"color:#0b4a8f; font-weight:800; text-transform:uppercase; font-size:0.8rem; margin-bottom:10px;\">Question ${idx+1} Solution</div><div class=\"q-text\">${q.q}</div><div class=\"sol-box\">${q.solution}</div><div style=\"font-weight:800; color:#16a34a; background:#f0fdf4; padding:15px; border-radius:12px; display:inline-block;\">Correct Key: ${q.correct}</div></div></body></html>`);
     solTab.document.close();
 };
 
@@ -229,9 +206,7 @@ function showFinalResultOnly() {
                 <tbody>${tableRows}</tbody>
             </table>
             <div style=\"text-align: center;\">
-                <button onclick=\"window.location.reload()\" style=\"background: #0b4a8f; color: white; border: none; padding: 18px 45px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(11, 74, 143, 0.2);\" onmouseover=\"this.style.transform='translateY(-2px)';\" onmouseout=\"this.style.transform='translateY(0)';\">
-                    BACK TO PORTAL
-                </button>
+                <button onclick=\"window.location.reload()\" style=\"background: #0b4a8f; color: white; border: none; padding: 18px 45px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(11, 74, 143, 0.2);\" onmouseover=\"this.style.transform='translateY(-2px)';\" onmouseout=\"this.style.transform='translateY(0)';\">BACK TO PORTAL</button>
             </div>
         </div>`;
     if (window.MathJax) MathJax.typesetPromise();
