@@ -7,7 +7,14 @@ const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. AUTHENTICATION & LOGIN UI
+// HELPER: FORCE MATH RENDERING
+function refreshMath() {
+    if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise().catch((err) => console.log('MathJax Error:', err));
+    }
+}
+
+// 3. AUTHENTICATION & UI LOGIC
 window.handleLogin = async function() {
     const emailInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
@@ -90,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// 4. DATA LOGIC
 window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
@@ -115,7 +121,6 @@ async function fetchQuestionsAndStart() {
     startExam();
 }
 
-// 5. EXAM LOGIC
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
@@ -142,16 +147,13 @@ window.loadQuestion = function() {
     const area = document.getElementById('question-area');
     area.innerHTML = `<div style="padding: 20px 50px;">
         <div style="margin-bottom: 20px;"><span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">Question ${currentIndex + 1}</span></div>
-        <div class="math-content" style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
+        <div class="tex2jax_process" style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
         <div style="display: flex; flex-direction: column; gap: 10px;">
-            ${qData.type === 'mcq' ? qData.options.map(opt => `<label style="padding: 15px; border: 1px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#ddd'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;"><input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> <span class="math-content">${opt}</span></label>`).join('') : `<input type="text" class="math-content" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`}
+            ${qData.type === 'mcq' ? qData.options.map(opt => `<label style="padding: 15px; border: 1px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#ddd'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;"><input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> <span class="tex2jax_process">${opt}</span></label>`).join('') : `<input type="text" class="tex2jax_process" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`}
         </div>
     </div>`;
     updateStats(); updatePaletteUI();
-    // Force MathJax to re-render the new question content
-    if (window.MathJax && window.MathJax.typesetPromise) {
-        window.MathJax.typesetPromise([area]);
-    }
+    refreshMath();
 };
 
 window.saveAnswer = function(val) { userAnswers[currentIndex] = val; saveToCloud(); };
@@ -164,14 +166,17 @@ function startTimer() { timerActive = true; const interval = setInterval(() => {
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 async function saveToCloud() { if (!currentUserEmail) return; const sub = document.getElementById('subject-select').value; const testName = document.getElementById('test-name-select').value; await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, subject: sub, test_name: testName, current_index: currentIndex, user_answers: [...userAnswers], confirmed_answered: [...confirmedAnswered], marked_for_review: [...markedForReview], time_left: timeLeft, is_finished: false }, { onConflict: 'username, subject, test_name' }); }
 
-// 6. SOLUTIONS & RESULT
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
-    // Split solution into steps based on period+space or specific step markers
-    const formattedSolution = q.solution.split(/\\n|\.\s+/).map(step => `<div style="margin-bottom:12px;">${step.trim()}${step.trim().endsWith('.') ? '' : '.'}</div>`).join('');
+    // Formats solution so every step (identified by \n or a period) is on a new line
+    const formattedSol = q.solution.split(/\\n|\.\s+/).map(step => `<div style="margin-bottom:10px;">${step.trim()}</div>`).join('');
     
     const solTab = window.open('', '_blank');
-    solTab.document.write(`<html><head><title>Solution</title><script>window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']] } };</script><script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script><style>body { font-family: 'Inter', sans-serif; background: #ffffff; padding: 40px; line-height: 1.6; }.premium-card { max-width: 800px; margin: auto; border: 1px solid #e2e8f0; border-radius: 24px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }.q-text { font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 25px; }.sol-box { background: #f8fafc; padding: 25px; border-radius: 16px; border-left: 5px solid #0b4a8f; margin: 20px 0; font-size: 1.1rem; }</style></head><body><div class="premium-card"><div style="color:#0b4a8f; font-weight:800; text-transform:uppercase; font-size:0.8rem; margin-bottom:10px;">Question ${idx+1} Solution</div><div class="q-text">${q.q}</div><div class="sol-box">${formattedSolution}</div><div style="font-weight:800; color:#16a34a; background:#f0fdf4; padding:15px; border-radius:12px; display:inline-block;">Correct Key: ${q.correct}</div></div></body></html>`);
+    solTab.document.write(`<html><head><title>Solution</title>
+    <script>window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']], processEscapes: true } };</script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; }.card { max-width: 800px; margin: auto; border: 1px solid #e2e8f0; border-radius: 12px; padding: 30px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }.sol-box { background: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid #0b4a8f; margin: 20px 0; }</style>
+    </head><body class="tex2jax_process"><div class="card"><h3>Question ${idx+1} Solution</h3><div>${q.q}</div><div class="sol-box">${formattedSol}</div><div style="font-weight:bold; color:#16a34a;">Correct Answer: ${q.correct}</div></div></body></html>`);
     solTab.document.close();
 };
 
@@ -180,15 +185,19 @@ function showFinalResultOnly() {
     let tableRows = activeBank.map((q, i) => {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
-        return `<tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'"><td style="padding:18px; font-weight:700; color:#64748b;">${i+1}</td><td style="padding:18px; text-align:left;">${q.q}</td><td style="padding:18px;"><span style="padding:6px 16px; border-radius:30px; font-size:0.85rem; font-weight:700; background:${isCorrect ? '#dcfce7':'#fee2e2'}; color:${isCorrect ? '#166534':'#991b1b'};">${userAnswers[i] || 'N/A'}</span></td><td style="padding:18px; font-weight:800; color:#0b4a8f;">${q.correct}</td><td style="padding:18px;"><button onclick="openDetailedSolution(${i})" style="border:2px solid #0b4a8f; background:none; color:#0b4a8f; padding:8px 18px; border-radius:10px; cursor:pointer; font-weight:700; transition: 0.3s;" onmouseover="this.style.background='#0b4a8f'; this.style.color='#fff'">Solution</button></td></tr>`;
+        return `<tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding:15px;">${i+1}</td><td style="padding:15px; text-align:left;">${q.q}</td><td style="padding:15px;">${userAnswers[i] || 'N/A'}</td><td style="padding:15px; font-weight:bold; color:#0b4a8f;">${q.correct}</td><td style="padding:15px;"><button onclick="openDetailedSolution(${i})" style="border:1px solid #0b4a8f; background:none; color:#0b4a8f; padding:5px 10px; border-radius:5px; cursor:pointer;">Solution</button></td></tr>`;
     }).join('');
     const percentage = ((score / total) * 100).toFixed(0);
-    const resultDiv = document.getElementById('result-screen');
+    const resultScreen = document.getElementById('result-screen');
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('exam-header').style.display = 'none';
-    resultDiv.style.display = 'block';
-    resultDiv.innerHTML = `<div style="max-width: 1200px; margin: 40px auto; font-family: 'Inter', sans-serif;"><div style="background: #0b4a8f; color: white; padding: 60px; border-radius: 24px; text-align: center;"><h1>Assessment Report</h1><div style="font-size: 4rem; font-weight: 900;">${score} / ${total}</div><div style="font-size: 1.5rem; opacity: 0.9;">Accuracy: ${percentage}%</div></div><table style="width:100%; border-collapse: collapse; margin-top: 40px;"><thead style="background: #f8fafc;"><tr><th style="padding:20px;">#</th><th style="text-align:left;">Question</th><th>Your Ans</th><th>Key</th><th>Review</th></tr></thead><tbody>${tableRows}</tbody></table><div style="text-align: center; margin-top: 40px;"><button onclick="window.location.reload()" style="background: #0b4a8f; color: white; border: none; padding: 18px 45px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer;">BACK TO PORTAL</button></div></div>`;
-    if (window.MathJax && window.MathJax.typesetPromise) window.MathJax.typesetPromise([resultDiv]);
+    resultScreen.style.display = 'block';
+    resultScreen.innerHTML = `<div class="tex2jax_process" style="max-width: 1000px; margin: 40px auto; font-family: 'Inter', sans-serif; text-align:center;">
+        <div style="background: #0b4a8f; color: white; padding: 40px; border-radius: 15px;"><h2>Score: ${score} / ${total} (${percentage}%)</h2></div>
+        <table style="width:100%; border-collapse: collapse; margin-top: 30px;"><thead><tr style="background:#f8fafc;"><th>#</th><th style="text-align:left;">Question</th><th>Your Ans</th><th>Key</th><th>Review</th></tr></thead><tbody>${tableRows}</tbody></table>
+        <button onclick="window.location.reload()" style="margin-top:30px; background:#0b4a8f; color:white; border:none; padding:15px 30px; border-radius:8px; cursor:pointer; font-weight:bold;">RESTART</button>
+    </div>`;
+    refreshMath();
 }
 
 window.finalSubmission = async function() {
