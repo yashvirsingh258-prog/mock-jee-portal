@@ -4,13 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JEE Main Portal</title>
+    
     <script>
         window.MathJax = {
-            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], processEscapes: true },
-            options: { processHtmlClass: 'tex2jax_process' }
+            tex: { 
+                inlineMath: [['$', '$'], ['\\(', '\\)']], 
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true 
+            },
+            options: { 
+                processHtmlClass: 'tex2jax_process' 
+            },
+            startup: {
+                pageReady: () => {
+                    return MathJax.startup.defaultPageReady();
+                }
+            }
         };
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" async></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="no-select">
@@ -18,6 +32,7 @@
     <div id="login-screen">
         <div class="login-card">
             <h2>JEE Portal Login</h2>
+            <div id="auth-status-msg" style="color: red; margin-bottom: 10px; font-size: 0.9rem;"></div>
             <input type="text" id="login-email" placeholder="Student Email">
             <input type="password" id="login-pass" placeholder="Password">
             
@@ -29,7 +44,9 @@
             </select>
 
             <label class="field-label">Test Name:</label>
-            <select id="test-name-select"></select>
+            <select id="test-name-select">
+                <option>Loading...</option>
+            </select>
 
             <button class="btn-pri" style="width:100%; margin-top:20px;" onclick="handleLogin()">Login & Start Test</button>
             <button class="btn-sec" style="width:100%; margin-top:10px; background:none; border:1px solid #0b4a8f; color:#0b4a8f; cursor:pointer; padding: 10px; border-radius: 4px;" onclick="handleSignup()">
@@ -90,6 +107,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=1.2"></script>
+    <script src="script.js?v=1.3"></script>
 </body>
 </html>
