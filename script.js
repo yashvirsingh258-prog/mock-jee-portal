@@ -17,7 +17,6 @@ window.handleLogin = async function() {
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
     
-    // REPLACED ALERT WITH IN-PAGE MESSAGE
     if (!email || !pass) { 
         if(statusMsg) statusMsg.innerText = "Please enter credentials.";
         return; 
@@ -74,22 +73,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div style="margin-bottom: 45px;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px;">Test Assignment</label>
-                    <select id="test-name-select" style="width: 100%; padding: 10px 0; border: none; border-bottom: 1.5px solid #e2e8f0; background: transparent; font-size: 15px; font-weight: 600; outline: none; cursor: pointer;"></select>
+                    <select id="test-name-select" style="width: 100%; padding: 10px 0; border: none; border-bottom: 1.5px solid #e2e8f0; background: transparent; font-size: 15px; font-weight: 600; outline: none; cursor: pointer;">
+                        <option>Loading tests...</option>
+                    </select>
                 </div>
                 <button class="login-submit-btn" onclick="handleLogin()" style="width: 100%; background: #0b4a8f; color: white; border: none; padding: 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 2px; transition: 0.3s;">ENTER PORTAL</button>
                 <div id="auth-status-msg" style="margin-top: 20px; color: #e11d48; font-size: 13px; font-weight: 600; text-align: center; min-height: 20px;"></div>
             </div>`;
+        
+        // Populate the dropdown immediately after the HTML is injected
+        updateTestNames();
     }
-    updateTestNames();
 });
 
-// 4. DATA LOGIC
+// 4. DATA LOGIC - Fixed to ensure dropdown population
 window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
-    const { data, error } = await supabaseClient.from('questions_table').select('test_name').eq('subject', sub);
-    if (!error && testSelect) {
-        testSelect.innerHTML = data.map(row => `<option value="${row.test_name}">${row.test_name}</option>`).join('');
+    if (!testSelect) return;
+    
+    const { data, error } = await supabaseClient
+        .from('questions_table')
+        .select('test_name')
+        .eq('subject', sub);
+    
+    if (error) {
+        console.error("Error fetching tests:", error);
+        testSelect.innerHTML = `<option>Error loading tests</option>`;
+    } else if (data && data.length > 0) {
+        // Use a Set to ensure unique test names in the dropdown
+        const uniqueTests = [...new Set(data.map(item => item.test_name))];
+        testSelect.innerHTML = uniqueTests.map(name => `<option value="${name}">${name}</option>`).join('');
+    } else {
+        testSelect.innerHTML = `<option>No tests found</option>`;
     }
 };
 
