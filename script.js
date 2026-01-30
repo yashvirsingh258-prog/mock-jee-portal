@@ -7,75 +7,60 @@ const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. HELPER: ROBUST MATH RENDERING
-// This ensures MathJax scans the page even after the content is injected by JS.
+// 3. CRITICAL FIX: ASYNCHRONOUS MATH RENDERING
+// This ensures MathJax scans the content ONLY after the browser has finished painting the HTML.
 function refreshMath(element) {
     if (window.MathJax && window.MathJax.typesetPromise) {
-        // A small timeout ensures the DOM has finished painting the new HTML
+        // 100ms delay solves the "race condition" where math is triggered on empty/old content
         setTimeout(() => {
             window.MathJax.typesetPromise([element]).catch((err) => console.log('MathJax Error:', err));
         }, 100);
     }
 }
 
-// 4. AUTHENTICATION & UI LOGIC
+// 4. AUTHENTICATION (Logic Preserved)
 window.handleLogin = async function() {
     const emailInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
     const statusMsg = document.getElementById('auth-status-msg');
-    
     if (!emailInput || !passInput) return;
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
-    
-    if (!email || !pass) { 
-        if(statusMsg) statusMsg.innerText = "Please enter credentials.";
-        return; 
-    }
-    
+    if (!email || !pass) { if(statusMsg) statusMsg.innerText = "Please enter credentials."; return; }
     const testSelect = document.getElementById('test-name-select');
     const testName = testSelect ? testSelect.value : "";
-
     if (!testName || testName === "Loading..." || testName === "No tests available") {
         if(statusMsg) statusMsg.innerText = "Please select a test assignment.";
         return;
     }
-    
     const loginBtn = document.querySelector('.login-submit-btn');
     if(loginBtn) loginBtn.innerText = "AUTHENTICATING..."; 
-
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-    
     if (error) {
         if(statusMsg) statusMsg.innerText = "Login failed: Invalid credentials.";
         if(loginBtn) loginBtn.innerText = "ENTER PORTAL";
     } else if (data.user) { 
         currentUserEmail = data.user.email;
         const sub = document.getElementById('subject-select').value;
-        const { data: progress } = await supabaseClient.from('student_progress')
-            .select('is_finished').eq('username', currentUserEmail).eq('subject', sub).eq('test_name', testName).maybeSingle();
-
+        const { data: progress } = await supabaseClient.from('student_progress').select('is_finished').eq('username', currentUserEmail).eq('subject', sub).eq('test_name', testName).maybeSingle();
         if (progress && progress.is_finished) {
             if(statusMsg) statusMsg.innerText = "Test already submitted.";
-            if(loginBtn) loginBtn.innerText = "ENTER PORTAL";
-        } else {
-            await fetchQuestionsAndStart(); 
-        }
+        } else { await fetchQuestionsAndStart(); }
     }
 };
 
-// 5. LOADING QUESTIONS
+// 5. LOADING QUESTIONS WITH RENDER TRIGGER
 window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // We add 'tex2jax_process' and ensure labels wrap correctly
+    // Applying 'tex2jax_process' is mandatory for MathJax 3.x scoped rendering
     area.innerHTML = `<div class="tex2jax_process" style="padding: 20px 50px;">
         <div style="margin-bottom: 20px;"><span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">Question ${currentIndex + 1}</span></div>
         <div style="font-size: 1.25rem; margin-bottom: 30px; line-height: 1.6;">${qData.q}</div>
         <div style="display: flex; flex-direction: column; gap: 12px;">
             ${qData.options.map(opt => `
-                <label style="padding: 16px; border: 1.5px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#e2e8f0'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 10px; cursor: pointer; transition: 0.2s;">
+                <label style="padding: 16px; border: 1.5px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#e2e8f0'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 10px; cursor: pointer;">
                     <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> 
                     <span style="margin-left: 10px;">${opt}</span>
                 </label>`).join('')}
@@ -84,16 +69,16 @@ window.loadQuestion = function() {
     
     updateStats(); 
     updatePaletteUI();
-    refreshMath(area); // Explicitly target the question area
+    refreshMath(area); // Trigger rendering on the new container
 };
 
-// 6. DETAILED SOLUTION (FIXING LINE BREAKS AND SYMBOLS)
+// 6. DETAILED SOLUTION (FIXING LINE BREAKS)
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
     
-    // Convert the database \\n into actual JS newlines
-    const cleanSolution = q.solution.replace(/\\n/g, '\n');
+    // CRITICAL: Handle the double-escaped backslashes from Supabase JSON
+    const cleanSolution = q.solution.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
 
     solTab.document.write(`<html><head><title>Solution</title>
     <script>
@@ -106,7 +91,7 @@ window.openDetailedSolution = function(idx) {
         body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; color: #1e293b; line-height: 1.6; }
         .card { max-width: 850px; margin: auto; background: #ffffff; border-radius: 24px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .sol-box { 
-            white-space: pre-wrap; /* Forces vertical step-by-step layout */
+            white-space: pre-wrap; /* FORCES VERTICAL LAYOUT FOR STEPS */
             background: #f1f5f9; 
             padding: 30px; 
             border-radius: 16px; 
@@ -121,7 +106,7 @@ window.openDetailedSolution = function(idx) {
             <div style="color: #0b4a8f; font-weight: 800; font-size: 0.8rem; text-transform: uppercase; margin-bottom: 10px;">Question ${idx+1} Explanation</div>
             <div style="font-size: 1.4rem; font-weight: 700; margin-bottom: 20px;">${q.q}</div>
             <div class="sol-box">${cleanSolution}</div>
-            <div style="font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 20px; border-radius: 15px; border: 1px solid #bbf7d0;">Correct Key: ${q.correct}</div>
+            <div style="font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 20px; border-radius: 15px;">Correct Answer: ${q.correct}</div>
         </div>
     </body></html>`);
     solTab.document.close();
