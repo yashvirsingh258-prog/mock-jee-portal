@@ -7,13 +7,13 @@ const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. CRITICAL FIX: MATH RENDERING HELPER
-// Uses a timeout to ensure the DOM has updated before MathJax scans for new symbols.
+// 3. CRITICAL FIX: ASYNCHRONOUS MATH RENDERING
 function refreshMath(element) {
     if (window.MathJax && window.MathJax.typesetPromise) {
+        // Small delay ensures the browser has finished painting the HTML
         setTimeout(() => {
             window.MathJax.typesetPromise([element]).catch((err) => console.log('MathJax Error:', err));
-        }, 150); // Increased delay for stability
+        }, 150); 
     }
 }
 
@@ -43,15 +43,15 @@ window.handleLogin = async function() {
     }
 };
 
-// 5. LOADING QUESTIONS
+// 5. LOADING QUESTIONS WITH AUTO-DELIMITER
 window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // Ensure every math string is wrapped in $ delimiters if not already present
+    // Safety check: wrap in $ if missing to force MathJax to recognize it
     const formatMath = (str) => {
         if (!str) return "";
-        return str.startsWith('$') ? str : `$${str}$`;
+        return str.includes('$') ? str : `$${str}$`;
     };
 
     area.innerHTML = `<div class="tex2jax_process" style="padding: 20px 50px;">
@@ -68,14 +68,14 @@ window.loadQuestion = function() {
     
     updateStats(); 
     updatePaletteUI();
-    refreshMath(area); // Force MathJax to scan the new question
+    refreshMath(area); //
 };
 
 // 6. DETAILED SOLUTION (FIXING LINE BREAKS)
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
-    const cleanSolution = q.solution.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n');
+    const cleanSolution = q.solution.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n'); //
 
     solTab.document.write(`<html><head><title>Solution</title>
     <script>
@@ -88,7 +88,7 @@ window.openDetailedSolution = function(idx) {
         body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; color: #1e293b; }
         .card { max-width: 850px; margin: auto; background: #ffffff; border-radius: 24px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
         .sol-box { 
-            white-space: pre-wrap; /* FORCES VERTICAL STEPS */
+            white-space: pre-wrap; /* Forces vertical step layout */
             background: #f1f5f9; padding: 30px; border-radius: 16px; border-left: 6px solid #0b4a8f; margin: 25px 0; line-height: 1.8;
         }
     </style></head>
