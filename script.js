@@ -107,7 +107,7 @@ window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // Add the 'tex2jax_process' class to ensure MathJax focuses here
+    // 1. Add 'tex2jax_process' class so MathJax knows where to look
     area.innerHTML = `<div class="tex2jax_process" style="padding: 20px 50px;">
         <div style="margin-bottom: 20px;"><span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">Question ${currentIndex + 1}</span></div>
         <div style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
@@ -119,7 +119,7 @@ window.loadQuestion = function() {
     updateStats(); 
     updatePaletteUI();
     
-    // Force MathJax to re-scan the new content
+    // 2. Trigger the math rendering engine for this specific area
     if (window.MathJax && window.MathJax.typesetPromise) {
         MathJax.typesetPromise([area]).catch((err) => console.log('MathJax Error:', err));
     }
@@ -137,11 +137,8 @@ window.openDetailedSolution = function(idx) {
     <style>
         body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; }
         .sol-box { 
-            white-space: pre-line; /* THIS FORCES NEW LINES */
-            background: #f8fafc; 
-            padding: 25px; 
-            border-radius: 16px; 
-            border-left: 5px solid #0b4a8f; 
+            white-space: pre-line; /* This forces the browser to show new lines */
+            background: #f8fafc; padding: 25px; border-radius: 16px; border-left: 5px solid #0b4a8f; margin: 20px 0; 
         }
     </style></head>
     <body class="tex2jax_process">
