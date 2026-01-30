@@ -106,20 +106,23 @@ window.startExam = function() {
 window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
-    area.innerHTML = `
-        <div class="tex2jax_process" style="padding: 20px 50px;">
-            <div style="margin-bottom: 20px;"><span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">Question ${currentIndex + 1}</span></div>
-            <div style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                ${qData.options.map(opt => `
-                    <label style="padding: 15px; border: 1px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#ddd'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
-                        <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> ${opt}
-                    </label>
-                `).join('')}
-            </div>
-        </div>`;
+    
+    // Add the 'tex2jax_process' class to ensure MathJax focuses here
+    area.innerHTML = `<div class="tex2jax_process" style="padding: 20px 50px;">
+        <div style="margin-bottom: 20px;"><span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">Question ${currentIndex + 1}</span></div>
+        <div style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            ${qData.type === 'mcq' ? qData.options.map(opt => `<label style="padding: 15px; border: 1px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#ddd'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;"><input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> ${opt}</label>`).join('') : `<input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`}
+        </div>
+    </div>`;
+    
+    updateStats(); 
     updatePaletteUI();
-    triggerMath();
+    
+    // Force MathJax to re-scan the new content
+    if (window.MathJax && window.MathJax.typesetPromise) {
+        MathJax.typesetPromise([area]).catch((err) => console.log('MathJax Error:', err));
+    }
 };
 
 window.saveAnswer = (val) => { userAnswers[currentIndex] = val; };
@@ -128,24 +131,27 @@ window.saveAndNext = () => { if (userAnswers[currentIndex] !== "") confirmedAnsw
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
-    solTab.document.write(`
-        <html><head>
-        <script>window.MathJax = { tex: { inlineMath: [['$', '$']] } };</script>
-        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-        <style>
-            body { font-family: 'Inter', sans-serif; padding: 40px; background: #f8fafc; color: #1e293b; }
-            .card { background: white; max-width: 800px; margin: auto; padding: 40px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-            .step-container { white-space: pre-line; background: #f1f5f9; padding: 20px; border-radius: 12px; margin: 20px 0; line-height: 1.8; font-size: 1.1rem; }
-        </style>
-        </head><body>
-            <div class="card tex2jax_process">
-                <h2 style="color:#0b4a8f">Solution for Question ${idx+1}</h2>
-                <div style="font-size:1.2rem; margin-bottom:20px;">${q.q}</div>
-                <div class="step-container">${q.solution.replace(/\\n/g, '\n')}</div>
-                <div style="color: #16a34a; font-weight: 800; font-size: 1.2rem;">Correct Key: ${q.correct}</div>
-            </div>
-        </body></html>
-    `);
+    solTab.document.write(`<html><head><title>Solution</title>
+    <script>window.MathJax = { tex: { inlineMath: [['$', '$']] } };</script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; }
+        .sol-box { 
+            white-space: pre-line; /* THIS FORCES NEW LINES */
+            background: #f8fafc; 
+            padding: 25px; 
+            border-radius: 16px; 
+            border-left: 5px solid #0b4a8f; 
+        }
+    </style></head>
+    <body class="tex2jax_process">
+        <div style="max-width: 800px; margin: auto;">
+            <h2>Solution ${idx+1}</h2>
+            <div>${q.q}</div>
+            <div class="sol-box">${q.solution.replace(/\\n/g, '\n')}</div>
+            <div style="font-weight:bold; color:#16a34a;">Key: ${q.correct}</div>
+        </div>
+    </body></html>`);
     solTab.document.close();
 };
 
