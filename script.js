@@ -162,39 +162,4 @@ function showFinalResultOnly() {
             <td style="padding:18px; text-align:left;">${q.q}</td>
             <td style="padding:18px;"><span style="padding:6px 16px; border-radius:30px; font-size:0.85rem; font-weight:700; background:${isCorrect ? '#dcfce7':'#fee2e2'}; color:${isCorrect ? '#166534':'#991b1b'};">${userAnswers[i] || 'N/A'}</span></td>
             <td style="padding:18px; font-weight:800; color:#0b4a8f;">${q.correct}</td>
-            <td style="padding:18px;"><button onclick="openDetailedSolution(${i})" style="border:2px solid #0b4a8f; background:none; color:#0b4a8f; padding:8px 18px; border-radius:10px; cursor:pointer; font-weight:700; transition: 0.3s;" onmouseover="this.style.background='#0b4a8f'; this.style.color='#fff'">Solution</button></td>
-        </tr>`;
-    }).join('');
-
-    const percentage = ((score / total) * 100).toFixed(0);
-
-    document.getElementById('quiz-container').style.display = 'none';
-    document.getElementById('exam-header').style.display = 'none';
-    document.getElementById('result-screen').style.display = 'block';
-    document.body.style.background = "#ffffff";
-    document.getElementById('result-screen').innerHTML = `
-        <div style="max-width: 1200px; margin: 40px auto; font-family: 'Inter', sans-serif;">
-            <div style="background: #0b4a8f; color: white; padding: 60px; border-radius: 24px; text-align: center; margin-bottom: 40px;">
-                <h1 style="font-size: 2.5rem; margin-bottom: 15px;">Assessment Report</h1>
-                <div style="font-size: 4rem; font-weight: 900; line-height: 1;">${score} / ${total}</div>
-                <div style="font-size: 1.5rem; font-weight: 600; opacity: 0.9; margin-top: 10px;">Accuracy: ${percentage}%</div>
-            </div>
-            <table style="width:100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-                <thead style="background: #f8fafc;"><tr><th style="padding:20px;">#</th><th style="text-align:left;">Question</th><th>Your Ans</th><th>Key</th><th>Review</th></tr></thead>
-                <tbody>${tableRows}</tbody>
-            </table>
-        </div>`;
-    if (window.MathJax) MathJax.typesetPromise();
-}
-
-window.finalSubmission = async function() {
-    const sub = document.getElementById('subject-select').value;
-    const testName = document.getElementById('test-name-select').value;
-    await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, subject: sub, test_name: testName, is_finished: true, user_answers: [...userAnswers], time_left: 0 }, { onConflict: 'username, subject, test_name' });
-    showFinalResultOnly();
-};
-
-function renderPalette() { document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `<div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;">${i+1}</div>`).join(''); }
-window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
-function updatePaletteUI() { activeBank.forEach((_, i) => { const dot = document.getElementById(`dot-${i}`); if (!dot) return; dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff"); dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333"; dot.style.border = (i === currentIndex) ? "2.5px solid #0b4a8f" : "1px solid #ccc"; }); }
-function updateStats() { const ans = confirmedAnswered.filter(x => x).length; document.getElementById('count-ans').innerText = ans; document.getElementById('count-not-ans').innerText = activeBank.length - ans; }
+            <td style="padding:18px;"><button onclick="openDetailedSolution(${i})" style="border:2px solid #0b4a8f; background:none; color:#0b4a8f; padding:8px 18px; border-radius:10px; cursor:pointer; font-weight:700; transition: 0.3s;" onmouseover="this.style.background='#0b4a8f'; this.style.color='#
