@@ -4,54 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JEE Main Portal</title>
-    
     <script>
         window.MathJax = {
             tex: { 
                 inlineMath: [['$', '$'], ['\\(', '\\)']], 
-                displayMath: [['$$', '$$'], ['\\[', '\\]']],
                 processEscapes: true 
             },
-            options: { 
-                processHtmlClass: 'tex2jax_process' 
-            },
-            startup: {
-                pageReady: () => {
-                    return MathJax.startup.defaultPageReady();
-                }
-            }
+            options: { processHtmlClass: 'tex2jax_process' }
         };
     </script>
-    
     <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-    
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="no-select">
-
     <div id="login-screen">
         <div class="login-card">
             <h2>JEE Portal Login</h2>
-            <div id="auth-status-msg" style="color: red; margin-bottom: 10px; font-size: 0.9rem;"></div>
+            <div id="auth-status-msg" style="color: red; margin-bottom: 10px;"></div>
             <input type="text" id="login-email" placeholder="Student Email">
             <input type="password" id="login-pass" placeholder="Password">
-            
             <label class="field-label">Subject:</label>
             <select id="subject-select" onchange="updateTestNames()">
                 <option value="mathematics">Mathematics</option>
                 <option value="physics">Physics</option>
                 <option value="chemistry">Chemistry</option>
             </select>
-
             <label class="field-label">Test Name:</label>
-            <select id="test-name-select">
-                <option>Loading...</option>
-            </select>
-
+            <select id="test-name-select"></select>
             <button class="btn-pri" style="width:100%; margin-top:20px;" onclick="handleLogin()">Login & Start Test</button>
-            <button class="btn-sec" style="width:100%; margin-top:10px; background:none; border:1px solid #0b4a8f; color:#0b4a8f; cursor:pointer; padding: 10px; border-radius: 4px;" onclick="handleSignup()">
-                Create New Account
-            </button>
         </div>
     </div>
 
@@ -63,50 +43,27 @@
     <div class="main-layout" id="quiz-container" style="display: none;">
         <div class="container">
             <div id="question-area" class="tex2jax_process"></div>
-            
             <div class="nav-bar">
                 <button class="btn-sec" onclick="prevQuestion()">Previous</button>
                 <button class="btn-rev" onclick="markForReview()">Mark for Review</button>
                 <button class="btn-clear" onclick="clearResponse()">Clear Response</button>
                 <button class="btn-pri" id="next-btn" onclick="saveAndNext()">Save & Next</button>
             </div>
-            
             <button class="btn-danger" onclick="confirmSubmit()">SUBMIT EXAMINATION</button>
         </div>
-        
         <div class="palette">
             <div class="summary-box">
                 <div class="stat">Answered: <span id="count-ans">0</span></div>
                 <div class="stat">Not Answered: <span id="count-not-ans">0</span></div>
             </div>
-
             <h4>Question Palette</h4>
             <div id="palette-grid"></div>
-            
-            <div class="legend-section">
-                <div class="leg-row">
-                    <div class="leg-item"><span class="dot-leg"></span> Not Visited</div>
-                    <div class="leg-item"><span class="dot-leg ans"></span> Answered</div>
-                </div>
-                <div class="leg-row">
-                    <div class="leg-item"><span class="dot-leg not-ans"></span> Not Answered</div>
-                    <div class="leg-item"><span class="dot-leg rev"></span> Marked for Review</div>
-                </div>
-            </div>
         </div>
     </div>
 
-    <div id="result-screen" style="display: none; padding: 20px;">
-        <div class="result-card tex2jax_process">
-            <h1>Test Summary</h1>
-            <div id="score-val"></div>
-            <div id="review-panel"></div>
-            <hr>
-            <button class="btn-pri" onclick="location.reload()">Back to Login</button>
-        </div>
-    </div>
+    <div id="result-screen" style="display: none; padding: 20px;"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=1.4"></script>
+    <script src="script.js?v=1.5"></script>
 </body>
 </html>
