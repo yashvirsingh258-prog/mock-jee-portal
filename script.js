@@ -7,36 +7,47 @@ const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. MATH RENDERING HELPER
-// This function tells MathJax to look for new $ symbols after we inject HTML
+// 3. MATHJAX CONFIGURATION
+// Explicitly define delimiters so MathJax recognizes $ for inline math
+window.MathJax = {
+    tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    },
+    options: {
+        processHtmlClass: 'tex2jax_process'
+    }
+};
+
+// 4. DATA NORMALIZATION & RENDERING
+// This cleans the quadruple backslashes (\\\\) found in the database into single ones (\)
+function cleanMathData(str) {
+    if (!str) return "";
+    return str.replace(/\\\\\\\\/g, '\\').replace(/\\\\/g, '\\');
+}
+
 function refreshMath(element) {
     if (window.MathJax && window.MathJax.typesetPromise) {
-        // 100ms delay ensures the browser has finished 'painting' the text
         setTimeout(() => {
-            window.MathJax.typesetPromise([element]).catch((err) => console.error('MathJax Error:', err));
-        }, 100);
+            window.MathJax.typesetPromise([element]).catch((err) => console.log('MathJax Error:', err));
+        }, 150); 
     }
 }
 
-// 4. AUTHENTICATION
+// 5. AUTHENTICATION (Logic Preserved)
 window.handleLogin = async function() {
     const emailInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
     const statusMsg = document.getElementById('auth-status-msg');
-    
     if (!emailInput || !passInput) return;
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
-    
-    if (!email || !pass) { 
-        if(statusMsg) statusMsg.innerText = "Please enter credentials.";
-        return; 
-    }
+    if (!email || !pass) { if(statusMsg) statusMsg.innerText = "Please enter credentials."; return; }
     
     const testSelect = document.getElementById('test-name-select');
     const testName = testSelect ? testSelect.value : "";
     if (!testName || testName === "Loading...") {
-        if(statusMsg) statusMsg.innerText = "Please select a test.";
+        if(statusMsg) statusMsg.innerText = "Please select a test assignment.";
         return;
     }
 
@@ -49,16 +60,76 @@ window.handleLogin = async function() {
     }
 };
 
-// 5. FETCHING DATA
+// 6. LOADING QUESTIONS WITH NORMALIZED DATA
+window.loadQuestion = function() {
+    const qData = activeBank[currentIndex];
+    const area = document.getElementById('question-area');
+    
+    // Clean math symbols from DB strings
+    const cleanQ = cleanMathData(qData.q);
+    const cleanOptions = qData.options.map(opt => cleanMathData(opt));
+
+    area.innerHTML = `<div class="tex2jax_process" style="padding: 20px 50px;">
+        <div style="margin-bottom: 20px;">
+            <span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px; font-weight: bold;">
+                Question ${currentIndex + 1}
+            </span>
+        </div>
+        <div style="font-size: 1.35rem; margin-bottom: 30px; line-height: 1.8;">${cleanQ}</div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+            ${cleanOptions.map((opt, i) => `
+                <label style="padding: 16px; border: 1.5px solid ${userAnswers[currentIndex] === qData.options[i] ? '#0b4a8f' : '#e2e8f0'}; background: ${userAnswers[currentIndex] === qData.options[i] ? '#f0f7ff' : '#fff'}; border-radius: 12px; cursor: pointer;">
+                    <input type="radio" name="answer" value="${qData.options[i]}" onchange="saveAnswer(this.value); loadQuestion();" ${userAnswers[currentIndex] === qData.options[i] ? 'checked' : ''}> 
+                    <span style="margin-left: 10px; font-size: 1.1rem;">${opt}</span>
+                </label>`).join('')}
+        </div>
+    </div>`;
+    
+    updateStats(); 
+    updatePaletteUI();
+    refreshMath(area); 
+};
+
+// 7. DETAILED SOLUTION (FIXING STEPS & SYMBOLS)
+window.openDetailedSolution = function(idx) {
+    const q = activeBank[idx];
+    const solTab = window.open('', '_blank');
+    
+    // Normalize math symbols and handle \n for vertical steps
+    const cleanSolBody = cleanMathData(q.solution).replace(/\\n/g, '\n');
+
+    solTab.document.write(`<html><head><title>Solution</title>
+    <script>
+        window.MathJax = { tex: { inlineMath: [['$', '$']] } };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; color: #1e293b; line-height: 1.6; }
+        .card { max-width: 850px; margin: auto; background: #ffffff; border-radius: 24px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
+        .sol-box { 
+            white-space: pre-wrap; /* Critical for step-by-step layout */
+            background: #f1f5f9; padding: 30px; border-radius: 16px; border-left: 6px solid #0b4a8f; margin: 25px 0; font-size: 1.15rem;
+        }
+    </style></head>
+    <body class="tex2jax_process">
+        <div class="card">
+            <h2 style="color: #0b4a8f;">Solution for Question ${idx+1}</h2>
+            <div style="font-size: 1.3rem;">${cleanMathData(q.q)}</div>
+            <div class="sol-box">${cleanSolBody}</div>
+            <div style="font-weight: bold; color: #16a34a; background: #f0fdf4; padding: 15px; border-radius: 10px; display: inline-block;">
+                Correct Key: ${cleanMathData(q.correct)}
+            </div>
+        </div>
+    </body></html>`);
+    solTab.document.close();
+};
+
+// 8. DATA FETCHING
 async function fetchQuestionsAndStart() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
-    
-    const { data, error } = await supabaseClient.from('questions_table')
-        .select('question_data')
-        .eq('subject', sub)
-        .eq('test_name', testName)
-        .maybeSingle();
+    const { data } = await supabaseClient.from('questions_table')
+        .select('question_data').eq('subject', sub).eq('test_name', testName).maybeSingle();
 
     if (data && data.question_data) {
         activeBank = data.question_data;
@@ -76,79 +147,7 @@ async function fetchQuestionsAndStart() {
     }
 }
 
-// 6. LOADING QUESTIONS
-window.loadQuestion = function() {
-    const qData = activeBank[currentIndex];
-    const area = document.getElementById('question-area');
-    
-    area.innerHTML = `
-        <div class="tex2jax_process" style="padding: 20px 50px;">
-            <div style="margin-bottom: 20px;">
-                <span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px; font-weight: bold;">
-                    Question ${currentIndex + 1}
-                </span>
-            </div>
-            <div style="font-size: 1.35rem; margin-bottom: 30px; line-height: 1.6; color: #1e293b;">
-                ${qData.q}
-            </div>
-            <div style="display: flex; flex-direction: column; gap: 12px;">
-                ${qData.options.map((opt, i) => `
-                    <label style="padding: 16px; border: 1.5px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#e2e8f0'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
-                        <input type="radio" name="answer" value="${opt}" onchange="saveAnswer(this.value); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> 
-                        <span style="margin-left: 10px; font-size: 1.1rem;">${opt}</span>
-                    </label>
-                `).join('')}
-            </div>
-        </div>`;
-    
-    updateStats(); 
-    updatePaletteUI();
-    refreshMath(area); // Triggers rendering for the new question content
-};
-
-// 7. DETAILED SOLUTION (FIXING VERTICAL STEPS)
-window.openDetailedSolution = function(idx) {
-    const q = activeBank[idx];
-    const solTab = window.open('', '_blank');
-    
-    solTab.document.write(`
-        <html><head>
-        <title>Solution - Question ${idx+1}</title>
-        <script>
-            window.MathJax = {
-                tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']] }
-            };
-        </script>
-        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-        <style>
-            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 50px; background: #f8fafc; color: #334155; }
-            .card { background: white; max-width: 850px; margin: auto; padding: 40px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-            .sol-box { 
-                white-space: pre-wrap; /* RESPECTS NEWLINES FOR VERTICAL STEPS */
-                background: #f1f5f9; 
-                padding: 30px; 
-                border-radius: 12px; 
-                border-left: 6px solid #0b4a8f; 
-                margin: 25px 0; 
-                line-height: 2;
-                font-size: 1.15rem;
-            }
-        </style></head>
-        <body class="tex2jax_process">
-            <div class="card">
-                <h2 style="color: #0b4a8f; margin-top: 0;">Detailed Step-by-Step Solution</h2>
-                <div style="font-size: 1.3rem; margin-bottom: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 20px;">${q.q}</div>
-                <div class="sol-box">${q.solution}</div>
-                <div style="font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 15px 25px; border-radius: 10px; display: inline-block;">
-                    Correct Answer: ${q.correct}
-                </div>
-            </div>
-        </body></html>
-    `);
-    solTab.document.close();
-};
-
-// 8. EXAM NAVIGATION & UTILITIES
+// 9. EXAM NAVIGATION & UTILITIES
 window.saveAnswer = (val) => { userAnswers[currentIndex] = val; saveToCloud(); };
 window.saveAndNext = () => { if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; } if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); } saveToCloud(); };
 window.prevQuestion = () => { if (currentIndex > 0) { currentIndex--; loadQuestion(); saveToCloud(); } };
@@ -186,12 +185,10 @@ function showFinalResultOnly() {
     res.style.display = 'block';
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('exam-header').style.display = 'none';
-    res.innerHTML = `
-        <div class="tex2jax_process" style="padding:100px; text-align:center;">
-            <h2 style="font-size: 2.5rem; color: #0b4a8f; margin-bottom: 20px;">Examination Complete</h2>
-            <p style="color: #64748b; font-size: 1.2rem; margin-bottom: 40px;">Your responses have been successfully recorded.</p>
-            <button onclick="openDetailedSolution(0)" style="background: #0b4a8f; color: white; border: none; padding: 18px 45px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 1.1rem;">VIEW SOLUTIONS</button>
-        </div>`;
+    res.innerHTML = `<div class="tex2jax_process" style="padding:100px; text-align:center;">
+        <h2 style="font-size: 2rem; color: #0b4a8f; margin-bottom: 20px;">Examination Complete</h2>
+        <button onclick="openDetailedSolution(0)" style="background: #0b4a8f; color: white; border: none; padding: 15px 40px; border-radius: 8px; cursor: pointer; font-weight: 700;">VIEW SOLUTIONS</button>
+    </div>`;
     refreshMath(res);
 }
 
