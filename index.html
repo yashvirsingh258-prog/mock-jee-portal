@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JEE Main Portal</title>
-    
     <script>
         window.MathJax = {
             tex: { 
@@ -38,9 +37,6 @@
             <select id="test-name-select"></select>
 
             <button class="btn-pri" style="width:100%; margin-top:20px;" onclick="handleLogin()">Login & Start Test</button>
-            <button class="btn-sec" style="width:100%; margin-top:10px; background:none; border:1px solid #0b4a8f; color:#0b4a8f; cursor:pointer; padding: 10px; border-radius: 4px;" onclick="handleSignup()">
-                Create New Account
-            </button>
         </div>
     </div>
 
@@ -52,14 +48,12 @@
     <div class="main-layout" id="quiz-container" style="display: none;">
         <div class="container">
             <div id="question-area" class="tex2jax_process"></div>
-            
             <div class="nav-bar">
                 <button class="btn-sec" onclick="prevQuestion()">Previous</button>
                 <button class="btn-rev" onclick="markForReview()">Mark for Review</button>
                 <button class="btn-clear" onclick="clearResponse()">Clear Response</button>
                 <button class="btn-pri" id="next-btn" onclick="saveAndNext()">Save & Next</button>
             </div>
-            
             <button class="btn-danger" onclick="confirmSubmit()">SUBMIT EXAMINATION</button>
         </div>
         
@@ -68,10 +62,8 @@
                 <div class="stat">Answered: <span id="count-ans">0</span></div>
                 <div class="stat">Not Answered: <span id="count-not-ans">0</span></div>
             </div>
-
             <h4>Question Palette</h4>
             <div id="palette-grid"></div>
-            
             <div class="legend-section">
                 <div class="leg-row">
                     <div class="leg-item"><span class="dot-leg"></span> Not Visited</div>
@@ -96,6 +88,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="script.js?v=1.6"></script>
+    <script src="script.js?v=1.7"></script>
 </body>
 </html>
