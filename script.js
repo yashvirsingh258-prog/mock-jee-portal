@@ -28,15 +28,11 @@ const questionBanks = {
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. AUTHENTICATION (Matching your index.html exactly)
+// 3. AUTHENTICATION
 window.handleLogin = async function() {
     const emailInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
-
-    if (!emailInput || !passInput) {
-        console.error("HTML Input elements not found!");
-        return;
-    }
+    if (!emailInput || !passInput) return;
 
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
@@ -47,7 +43,6 @@ window.handleLogin = async function() {
     }
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-
     if (error) {
         alert("Login failed: " + error.message);
     } else if (data.user) {
@@ -96,7 +91,6 @@ window.startExam = async function() {
     const { data } = await supabaseClient.from('student_progress').select('*')
         .eq('username', currentUserEmail).eq('subject', sub).maybeSingle();
 
-    // LOCK CHECK
     if (data && data.is_finished === true) {
         alert("This test has already been submitted.");
         userAnswers = data.user_answers || [];
@@ -182,6 +176,7 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
+// 6. MODERN SUMMARY VIEW
 function showFinalResultOnly() {
     timerActive = false; 
     let score = 0;
@@ -191,10 +186,15 @@ function showFinalResultOnly() {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
         return `
-            <tr style="border-bottom: 1px solid #eee;">
-                <td style="padding:15px; text-align:center;">${i+1}</td>
-                <td style="padding:15px; text-align:left;">${q.q}</td>
-                <td style="padding:15px; text-align:center; font-weight:bold; color:${isCorrect ? '#198754' : '#d93025'}">${userAnswers[i] || 'N/A'}</td>
+            <tr style="border-bottom: 1px solid #edf2f7;">
+                <td style="padding:15px; text-align:center; color:#718096; font-weight:600;">${i+1}</td>
+                <td style="padding:15px; text-align:left; color:#2d3748;">${q.q}</td>
+                <td style="padding:15px; text-align:center;">
+                    <span style="padding:4px 12px; border-radius:12px; font-weight:bold; font-size:0.85rem; 
+                        background:${isCorrect ? '#c6f6d5' : '#fed7d7'}; color:${isCorrect ? '#22543d' : '#822727'};">
+                        ${userAnswers[i] || 'N/A'}
+                    </span>
+                </td>
                 <td style="padding:15px; text-align:center; font-weight:bold; color:#0b4a8f;">${q.correct}</td>
             </tr>`;
     }).join('');
@@ -202,16 +202,35 @@ function showFinalResultOnly() {
     const percentage = ((score / totalQuestions) * 100).toFixed(2);
     setView('result');
 
+    // YOUR STICKER (KEEPING EXACT GRADIENT & STYLE)
     document.getElementById('score-val').innerHTML = `
         <div style="display: flex; justify-content: center; margin-bottom: 40px;">
-            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 20px; text-align: center;">
-                <div style="font-size: 3.5rem; font-weight: 800;">${score} / ${totalQuestions}</div>
-                <div>Accuracy: ${percentage}%</div>
+            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(11, 74, 143, 0.3); text-align: center; min-width: 320px;">
+                <div style="font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">Score Report</div>
+                <div style="font-size: 3.5rem; font-weight: 800; margin: 0; line-height: 1;">${score} <span style="font-size: 1.5rem; opacity: 0.7;">/ ${totalQuestions}</span></div>
+                <div style="margin-top: 20px; font-size: 1.4rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 8px 25px; border-radius: 50px;">
+                    Accuracy: ${percentage}%
+                </div>
             </div>
         </div>`;
 
-    document.getElementById('review-panel').innerHTML = `<table><tbody>${tableRows}</tbody></table>`;
-    if (window.MathJax) setTimeout(() => { MathJax.typesetPromise(); }, 200);
+    // RESTORED PREMIUM TABLE WITH HEADERS
+    document.getElementById('review-panel').innerHTML = `
+        <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
+            <table style="width:100%; border-collapse:collapse; font-family: sans-serif;">
+                <thead>
+                    <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;">Q.No</th>
+                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px; text-align:left;">Question Description</th>
+                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;">Your Response</th>
+                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;">Correct Answer</th>
+                    </tr>
+                </thead>
+                <tbody>${tableRows}</tbody>
+            </table>
+        </div>`;
+
+    if (window.MathJax) setTimeout(() => { MathJax.typesetPromise([document.getElementById('review-panel')]); }, 200);
 }
 
 window.finalSubmission = async function() {
@@ -220,13 +239,14 @@ window.finalSubmission = async function() {
         username: currentUserEmail, 
         subject: sub, 
         is_finished: true, 
-        user_answers: [...userAnswers] 
+        user_answers: [...userAnswers],
+        time_left: 0
     }, { onConflict: 'username' });
 
     if (!error) showFinalResultOnly();
 };
 
-// UI HELPERS
+// 7. UI HELPERS
 function renderPalette() {
     document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
         <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px;">${i+1}</div>`).join('');
