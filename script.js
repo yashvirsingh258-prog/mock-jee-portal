@@ -16,36 +16,28 @@ window.handleLogin = async function() {
     if (!emailInput || !passInput) return;
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
-    if (!email || pass) { 
-        if(statusMsg) statusMsg.innerText = "Please enter your email id.";
-        return; 
-    }
-
-    if (email || !pass) { 
-        if(statusMsg) statusMsg.innerText = "Please enter your password.";
-        return; 
-    }
     
+    // Check credentials logic
     if (!email || !pass) { 
-        if(statusMsg) statusMsg.innerText = "Please enter email id and password.";
+        if(statusMsg) statusMsg.innerText = "Please enter credentials.";
         return; 
     }
     
     const loginBtn = document.querySelector('.login-submit-btn');
     if(loginBtn) loginBtn.innerText = "AUTHENTICATING..."; 
-    if(statusMsg) statusMsg.innerText = ""; // Clear previous messages
+    if(statusMsg) statusMsg.innerText = ""; 
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
     
     if (error) {
-        alert("Login failed: " + error.message);
+        if(statusMsg) statusMsg.innerText = "Login failed: " + error.message;
         if(loginBtn) loginBtn.innerText = "ENTER PORTAL";
     } else if (data.user) { 
         currentUserEmail = data.user.email;
         
-        // Check if test is already finished before starting
         const sub = document.getElementById('subject-select').value;
         const testName = document.getElementById('test-name-select').value;
+        
         const { data: progress } = await supabaseClient.from('student_progress')
             .select('is_finished')
             .eq('username', currentUserEmail)
@@ -83,22 +75,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div style="margin-bottom: 45px;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px;">Test Assignment</label>
-                    <select id="test-name-select" style="width: 100%; padding: 10px 0; border: none; border-bottom: 1.5px solid #e2e8f0; background: transparent; font-size: 15px; font-weight: 600; outline: none; cursor: pointer;"></select>
+                    <select id="test-name-select" style="width: 100%; padding: 10px 0; border: none; border-bottom: 1.5px solid #e2e8f0; background: transparent; font-size: 15px; font-weight: 600; outline: none; cursor: pointer;">
+                        <option>Loading...</option>
+                    </select>
                 </div>
                 <button class="login-submit-btn" onclick="handleLogin()" style="width: 100%; background: #0b4a8f; color: white; border: none; padding: 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 2px; transition: 0.3s;">ENTER PORTAL</button>
                 <div id="auth-status-msg" style="margin-top: 20px; color: #e11d48; font-size: 13px; font-weight: 600; text-align: center; min-height: 20px;"></div>
             </div>`;
+        
+        // Populate tests immediately for the default subject
+        updateTestNames();
     }
-    updateTestNames();
 });
 
-// 4. DATA LOGIC
+// 4. DATA LOGIC - ENSURE TESTS ARE FETCHED
 window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
-    const { data, error } = await supabaseClient.from('questions_table').select('test_name').eq('subject', sub);
-    if (!error && testSelect) {
-        testSelect.innerHTML = data.map(row => `<option value="${row.test_name}">${row.test_name}</option>`).join('');
+    if (!testSelect) return;
+    
+    // Direct fetch from questions_table based on subject
+    const { data, error } = await supabaseClient
+        .from('questions_table')
+        .select('test_name')
+        .eq('subject', sub);
+    
+    if (error) {
+        testSelect.innerHTML = `<option>Error loading tests</option>`;
+        console.error("Fetch Error:", error);
+    } else if (data && data.length > 0) {
+        // Remove duplicates and populate
+        const uniqueTests = [...new Set(data.map(item => item.test_name))];
+        testSelect.innerHTML = uniqueTests.map(name => `<option value="${name}">${name}</option>`).join('');
+    } else {
+        testSelect.innerHTML = `<option>No tests available</option>`;
     }
 };
 
@@ -117,7 +127,6 @@ window.startExam = async function() {
     const testName = document.getElementById('test-name-select').value;
     const { data } = await supabaseClient.from('student_progress').select('*').eq('username', currentUserEmail).eq('subject', sub).eq('test_name', testName).maybeSingle();
     
-    // Safety check: if they somehow bypassed login and are finished, show results
     if (data && data.is_finished) { userAnswers = data.user_answers; showFinalResultOnly(); return; }
     
     if (data && confirm("Resume progress?")) {
@@ -159,7 +168,6 @@ function startTimer() { timerActive = true; const interval = setInterval(() => {
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 async function saveToCloud() { if (!currentUserEmail) return; const sub = document.getElementById('subject-select').value; const testName = document.getElementById('test-name-select').value; await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, subject: sub, test_name: testName, current_index: currentIndex, user_answers: [...userAnswers], confirmed_answered: [...confirmedAnswered], marked_for_review: [...markedForReview], time_left: timeLeft, is_finished: false }, { onConflict: 'username, subject, test_name' }); }
 
-// 6. PREMIUM SOLUTIONS & SUMMARY
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
@@ -194,12 +202,12 @@ function showFinalResultOnly() {
     let tableRows = activeBank.map((q, i) => {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
-        return `<tr style="border-bottom: 1px solid #f1f5f9; transition: 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-            <td style="padding:18px; font-weight:700; color:#64748b;">${i+1}</td>
-            <td style="padding:18px; text-align:left;">${q.q}</td>
-            <td style="padding:18px;"><span style="padding:6px 16px; border-radius:30px; font-size:0.85rem; font-weight:700; background:${isCorrect ? '#dcfce7':'#fee2e2'}; color:${isCorrect ? '#166534':'#991b1b'};">${userAnswers[i] || 'N/A'}</span></td>
-            <td style="padding:18px; font-weight:800; color:#0b4a8f;">${q.correct}</td>
-            <td style="padding:18px;"><button onclick="openDetailedSolution(${i})" style="border:2px solid #0b4a8f; background:none; color:#0b4a8f; padding:8px 18px; border-radius:10px; cursor:pointer; font-weight:700; transition: 0.3s;" onmouseover="this.style.background='#0b4a8f'; this.style.color='#fff'">Solution</button></td>
+        return `<tr style=\"border-bottom: 1px solid #f1f5f9; transition: 0.2s;\" onmouseover=\"this.style.background='#f8fafc'\" onmouseout=\"this.style.background='transparent'\">
+            <td style=\"padding:18px; font-weight:700; color:#64748b;\">${i+1}</td>
+            <td style=\"padding:18px; text-align:left;\">${q.q}</td>
+            <td style=\"padding:18px;\"><span style=\"padding:6px 16px; border-radius:30px; font-size:0.85rem; font-weight:700; background:${isCorrect ? '#dcfce7':'#fee2e2'}; color:${isCorrect ? '#166534':'#991b1b'};\">${userAnswers[i] || 'N/A'}</span></td>
+            <td style=\"padding:18px; font-weight:800; color:#0b4a8f;\">${q.correct}</td>
+            <td style=\"padding:18px;\"><button onclick=\"openDetailedSolution(${i})\" style=\"border:2px solid #0b4a8f; background:none; color:#0b4a8f; padding:8px 18px; border-radius:10px; cursor:pointer; font-weight:700; transition: 0.3s;\" onmouseover=\"this.style.background='#0b4a8f'; this.style.color='#fff'\">Solution</button></td>
         </tr>`;
     }).join('');
 
@@ -210,18 +218,18 @@ function showFinalResultOnly() {
     document.getElementById('result-screen').style.display = 'block';
     document.body.style.background = "#ffffff";
     document.getElementById('result-screen').innerHTML = `
-        <div style="max-width: 1200px; margin: 40px auto; font-family: 'Inter', sans-serif; padding-bottom: 60px;">
-            <div style="background: #0b4a8f; color: white; padding: 60px; border-radius: 24px; text-align: center; margin-bottom: 40px;">
-                <h1 style="font-size: 2.5rem; margin-bottom: 15px;">Assessment Report</h1>
-                <div style="font-size: 4rem; font-weight: 900; line-height: 1;">${score} / ${total}</div>
-                <div style="font-size: 1.5rem; font-weight: 600; opacity: 0.9; margin-top: 10px;">Accuracy: ${percentage}%</div>
+        <div style=\"max-width: 1200px; margin: 40px auto; font-family: 'Inter', sans-serif; padding-bottom: 60px;\">
+            <div style=\"background: #0b4a8f; color: white; padding: 60px; border-radius: 24px; text-align: center; margin-bottom: 40px;\">
+                <h1 style=\"font-size: 2.5rem; margin-bottom: 15px;\">Assessment Report</h1>
+                <div style=\"font-size: 4rem; font-weight: 900; line-height: 1;\">${score} / ${total}</div>
+                <div style=\"font-size: 1.5rem; font-weight: 600; opacity: 0.9; margin-top: 10px;\">Accuracy: ${percentage}%</div>
             </div>
-            <table style="width:100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 50px;">
-                <thead style="background: #f8fafc;"><tr><th style="padding:20px;">#</th><th style="text-align:left;">Question</th><th>Your Ans</th><th>Key</th><th>Review</th></tr></thead>
+            <table style=\"width:100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 50px;\">
+                <thead style=\"background: #f8fafc;\"><tr><th style=\"padding:20px;\">#</th><th style=\"text-align:left;\">Question</th><th>Your Ans</th><th>Key</th><th>Review</th></tr></thead>
                 <tbody>${tableRows}</tbody>
             </table>
-            <div style="text-align: center;">
-                <button onclick="window.location.reload()" style="background: #0b4a8f; color: white; border: none; padding: 18px 45px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(11, 74, 143, 0.2);" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
+            <div style=\"text-align: center;\">
+                <button onclick=\"window.location.reload()\" style=\"background: #0b4a8f; color: white; border: none; padding: 18px 45px; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 20px rgba(11, 74, 143, 0.2);\" onmouseover=\"this.style.transform='translateY(-2px)';\" onmouseout=\"this.style.transform='translateY(0)';\">
                     BACK TO PORTAL
                 </button>
             </div>
@@ -236,7 +244,7 @@ window.finalSubmission = async function() {
     showFinalResultOnly();
 };
 
-function renderPalette() { document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `<div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;">${i+1}</div>`).join(''); }
+function renderPalette() { document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `<div id=\"dot-${i}\" onclick=\"jumpTo(${i})\" style=\"width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;\">${i+1}</div>`).join(''); }
 window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
 function updatePaletteUI() { activeBank.forEach((_, i) => { const dot = document.getElementById(`dot-${i}`); if (!dot) return; dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff"); dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333"; dot.style.border = (i === currentIndex) ? "2.5px solid #0b4a8f" : "1px solid #ccc"; }); }
 function updateStats() { const ans = confirmedAnswered.filter(x => x).length; document.getElementById('count-ans').innerText = ans; document.getElementById('count-not-ans').innerText = activeBank.length - ans; }
