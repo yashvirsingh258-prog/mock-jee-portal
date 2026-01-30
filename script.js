@@ -137,15 +137,37 @@ window.startExam = async function() {
 window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
+    
+    // Ensure we handle empty values for the first render
+    const currentSelection = userAnswers[currentIndex] || "";
+
     area.innerHTML = `<div style="padding: 20px 50px;">
-        <div style="margin-bottom: 20px;"><span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">Question ${currentIndex + 1}</span></div>
+        <div style="margin-bottom: 20px;">
+            <span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">
+                Question ${currentIndex + 1}
+            </span>
+        </div>
         <div style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
         <div style="display: flex; flex-direction: column; gap: 10px;">
-            ${qData.type === 'mcq' ? qData.options.map(opt => `<label style="padding: 15px; border: 1px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#ddd'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;"><input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> ${opt}</label>`).join('') : `<input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`}
+            ${qData.type === 'mcq' ? qData.options.map(opt => `
+                <label style="padding: 15px; border: 1px solid ${currentSelection === opt ? '#0b4a8f' : '#ddd'}; background: ${currentSelection === opt ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
+                    <input type="radio" name="answer" value="${opt}" 
+                        onchange="saveAnswer('${opt}'); loadQuestion();" 
+                        ${currentSelection === opt ? 'checked' : ''}> 
+                    ${opt}
+                </label>`).join('') : `
+                <input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" 
+                    oninput="saveAnswer(this.value)" value="${currentSelection}">`
+            }
         </div>
     </div>`;
-    updateStats(); updatePaletteUI();
-    if (window.MathJax) MathJax.typesetPromise();
+    
+    updateStats(); 
+    updatePaletteUI();
+    
+    if (window.MathJax) {
+        MathJax.typesetPromise();
+    }
 };
 
 window.saveAnswer = function(val) { userAnswers[currentIndex] = val; saveToCloud(); };
