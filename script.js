@@ -18,25 +18,25 @@ window.handleLogin = async function() {
     const pass = passInput.value.trim();
     
     if (!email || !pass) { 
-        if(statusMsg) statusMsg.innerText = "Please enter credentials.";
+        if(statusMsg) statusMsg.innerText = "Please enter your credentials.";
         return; 
     }
     
     const loginBtn = document.querySelector('.login-submit-btn');
     if(loginBtn) loginBtn.innerText = "AUTHENTICATING..."; 
-    if(statusMsg) statusMsg.innerText = ""; 
+    if(statusMsg) statusMsg.innerText = ""; // Clear previous messages
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
     
     if (error) {
-        if(statusMsg) statusMsg.innerText = "Login failed: " + error.message;
+        alert("Login failed: " + error.message);
         if(loginBtn) loginBtn.innerText = "ENTER PORTAL";
     } else if (data.user) { 
         currentUserEmail = data.user.email;
         
+        // Check if test is already finished before starting
         const sub = document.getElementById('subject-select').value;
         const testName = document.getElementById('test-name-select').value;
-        
         const { data: progress } = await supabaseClient.from('student_progress')
             .select('is_finished')
             .eq('username', currentUserEmail)
@@ -74,38 +74,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div style="margin-bottom: 45px;">
                     <label style="display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px;">Test Assignment</label>
-                    <select id="test-name-select" style="width: 100%; padding: 10px 0; border: none; border-bottom: 1.5px solid #e2e8f0; background: transparent; font-size: 15px; font-weight: 600; outline: none; cursor: pointer;">
-                        <option>Loading tests...</option>
-                    </select>
+                    <select id="test-name-select" style="width: 100%; padding: 10px 0; border: none; border-bottom: 1.5px solid #e2e8f0; background: transparent; font-size: 15px; font-weight: 600; outline: none; cursor: pointer;"></select>
                 </div>
                 <button class="login-submit-btn" onclick="handleLogin()" style="width: 100%; background: #0b4a8f; color: white; border: none; padding: 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 2px; transition: 0.3s;">ENTER PORTAL</button>
                 <div id="auth-status-msg" style="margin-top: 20px; color: #e11d48; font-size: 13px; font-weight: 600; text-align: center; min-height: 20px;"></div>
             </div>`;
-        
-        updateTestNames();
     }
+    updateTestNames();
 });
 
-// 4. DATA LOGIC - FIXED TEST NAME FETCHING
+// 4. DATA LOGIC
 window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
-    if (!testSelect) return;
-    
-    // Selecting all test_names for the chosen subject
-    const { data, error } = await supabaseClient
-        .from('questions_table')
-        .select('test_name')
-        .eq('subject', sub);
-    
-    if (error) {
-        testSelect.innerHTML = `<option>Error loading tests</option>`;
-    } else if (data && data.length > 0) {
-        // Filter unique test names just in case there are duplicates in the table
-        const uniqueTests = [...new Set(data.map(item => item.test_name))];
-        testSelect.innerHTML = uniqueTests.map(name => `<option value="${name}">${name}</option>`).join('');
-    } else {
-        testSelect.innerHTML = `<option>No test found</option>`;
+    const { data, error } = await supabaseClient.from('questions_table').select('test_name').eq('subject', sub);
+    if (!error && testSelect) {
+        testSelect.innerHTML = data.map(row => `<option value="${row.test_name}">${row.test_name}</option>`).join('');
     }
 };
 
@@ -124,6 +108,7 @@ window.startExam = async function() {
     const testName = document.getElementById('test-name-select').value;
     const { data } = await supabaseClient.from('student_progress').select('*').eq('username', currentUserEmail).eq('subject', sub).eq('test_name', testName).maybeSingle();
     
+    // Safety check: if they somehow bypassed login and are finished, show results
     if (data && data.is_finished) { userAnswers = data.user_answers; showFinalResultOnly(); return; }
     
     if (data && confirm("Resume progress?")) {
@@ -165,6 +150,7 @@ function startTimer() { timerActive = true; const interval = setInterval(() => {
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 async function saveToCloud() { if (!currentUserEmail) return; const sub = document.getElementById('subject-select').value; const testName = document.getElementById('test-name-select').value; await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, subject: sub, test_name: testName, current_index: currentIndex, user_answers: [...userAnswers], confirmed_answered: [...confirmedAnswered], marked_for_review: [...markedForReview], time_left: timeLeft, is_finished: false }, { onConflict: 'username, subject, test_name' }); }
 
+// 6. PREMIUM SOLUTIONS & SUMMARY
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
