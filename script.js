@@ -137,8 +137,6 @@ window.startExam = async function() {
 window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
-    
-    // Get current stored answer for this index
     const currentSelection = userAnswers[currentIndex] || "";
 
     area.innerHTML = `<div style="padding: 20px 50px;">
@@ -150,14 +148,12 @@ window.loadQuestion = function() {
         <div style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
         <div style="display: flex; flex-direction: column; gap: 10px;">
             ${qData.type === 'mcq' ? qData.options.map(opt => {
-                // Determine if this specific option matches what is saved
-                const isSelected = (String(opt) === String(currentSelection));
-                
+                const isSelected = (currentSelection === opt);
                 return `
                 <label style="padding: 15px; border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; background: ${isSelected ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
                     <input type="radio" name="answer" value="${opt}" 
                         onchange="saveAnswer('${opt}')" 
-                        ${isSelected ? 'checked="checked"' : ''}> 
+                        ${isSelected ? 'checked' : ''}> 
                     ${opt}
                 </label>`;
             }).join('') : `
@@ -169,29 +165,31 @@ window.loadQuestion = function() {
     
     updateStats(); 
     updatePaletteUI();
-    if (window.MathJax) {
-        MathJax.typesetPromise();
-    }
+    if (window.MathJax) MathJax.typesetPromise();
 };
 
 window.saveAnswer = function(val) {
+    // Save to state
     userAnswers[currentIndex] = val;
     
-    // Update the visual border and background of labels manually
+    // Manually update the UI without re-rendering the whole page
     const labels = document.querySelectorAll('#question-area label');
     labels.forEach(label => {
         const input = label.querySelector('input');
         if (input && input.value === val) {
-            label.style.border = '1px solid #0b4a8f';
+            // Selected state
+            label.style.border = '1.5px solid #0b4a8f';
             label.style.background = '#f0f7ff';
+            input.checked = true; // Ensures the dot is visible
         } else {
+            // Unselected state
             label.style.border = '1px solid #ddd';
             label.style.background = '#fff';
         }
     });
 
     updateStats(); 
-    updatePaletteUI(); // Turns the palette green
+    updatePaletteUI();
     saveToCloud();
 };
 
