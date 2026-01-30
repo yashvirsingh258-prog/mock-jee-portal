@@ -87,9 +87,9 @@ document.addEventListener('DOMContentLoaded', () => {
 function cleanMath(str) {
     if (!str) return "";
     return str
-        .replace(/\\\\/g, '\\')      // Fixes double backslashes
-        .replace(/\\n/g, '<br/>')   // Converts the string "\n" into a line break
-        .replace(/\n/g, '<br/>');    // Converts actual keyboard enters into line breaks
+        .replace(/\\\\/g, '\\')      // Fixes backslashes
+        .replace(/\\n/g, '<br/>')   // Converts the string "\n" into a vertical break
+        .replace(/\n/g, '<br/>');    // Converts actual enters into vertical breaks
 }
 
 // 5. DATA LOGIC
@@ -161,6 +161,10 @@ async function saveToCloud() { if (!currentUserEmail) return; const sub = docume
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
+    
+    // Convert text \n or escaped \\n into HTML line breaks for vertical steps
+    const formattedSolution = q.solution ? q.solution.replace(/\\n/g, '<br>').replace(/\n/g, '<br>') : "";
+
     solTab.document.write(`
         <html>
         <head>
@@ -171,14 +175,22 @@ window.openDetailedSolution = function(idx) {
                 body { font-family: 'Inter', sans-serif; background: #ffffff; padding: 40px; line-height: 1.6; }
                 .premium-card { max-width: 800px; margin: auto; border: 1px solid #e2e8f0; border-radius: 24px; padding: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
                 .q-text { font-size: 1.3rem; font-weight: 700; color: #0f172a; margin-bottom: 25px; }
-                .sol-box { background: #f8fafc; padding: 25px; border-radius: 16px; border-left: 5px solid #0b4a8f; margin: 20px 0; font-size: 1.1rem; }
+                .sol-box { 
+                    background: #f8fafc; 
+                    padding: 25px; 
+                    border-radius: 16px; 
+                    border-left: 5px solid #0b4a8f; 
+                    margin: 20px 0; 
+                    font-size: 1.1rem; 
+                    white-space: pre-wrap; /* Forces browser to respect line breaks */
+                }
             </style>
         </head>
         <body>
             <div class="premium-card">
                 <div style="color:#0b4a8f; font-weight:800; text-transform:uppercase; font-size:0.8rem; margin-bottom:10px;">Question ${idx+1} Solution</div>
                 <div class="q-text">${q.q}</div>
-                <div class="sol-box">${q.solution}</div>
+                <div class="sol-box">${formattedSolution}</div>
                 <div style="font-weight:800; color:#16a34a; background:#f0fdf4; padding:15px; border-radius:12px; display:inline-block;">Correct Key: ${q.correct}</div>
             </div>
         </body>
