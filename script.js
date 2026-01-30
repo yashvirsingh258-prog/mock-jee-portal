@@ -19,6 +19,17 @@ window.MathJax = {
     }
 };
 
+// 4. THE FINAL CLEANER
+// This version is specifically tuned to your CSV data structure
+function cleanMath(str) {
+    if (!str) return "";
+    return str
+        .replace(/\\\\\\\\/g, '\\') // Fixes quadruple slashes
+        .replace(/\\\\/g, '\\')     // Fixes double slashes
+        .replace(/\\n/g, '<br>')    // Converts the string "\n" into an actual HTML line break
+        .replace(/\n/g, '<br>');    // Converts real newlines into HTML line breaks
+}
+
 function refreshMath(element) {
     if (window.MathJax && window.MathJax.typesetPromise) {
         setTimeout(() => {
@@ -27,7 +38,7 @@ function refreshMath(element) {
                     return window.MathJax.typesetPromise([element]);
                 })
                 .catch((err) => console.log('MathJax Error:', err));
-        }, 250); 
+        }, 300); 
     }
 }
 
@@ -87,14 +98,14 @@ window.loadQuestion = function() {
     refreshMath(area);
 };
 
-// 7. DETAILED SOLUTION (FIXED FOR LINE BREAKS)
+// 7. DETAILED SOLUTION (FIXED FOR VERTICAL STEPS)
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
     
-    solTab.document.write(`
+    solTab.document.write(\`
         <html><head>
-        <title>Solution - Question ${idx+1}</title>
+        <title>Solution - Question \${idx+1}</title>
         <script>
             window.MathJax = { tex: { inlineMath: [['$', '$']] } };
         </script>
@@ -109,20 +120,20 @@ window.openDetailedSolution = function(idx) {
                 border-left: 6px solid #0b4a8f; 
                 margin: 25px 0; 
                 font-size: 1.15rem;
-                line-height: 2.2; /* Increased for better readability of math steps */
+                line-height: 2.2; /* Increased for math readability */
             }
         </style></head>
         <body class="tex2jax_process">
             <div class="card">
                 <h2 style="color: #0b4a8f;">Step-by-Step Solution</h2>
-                <div style="font-size: 1.3rem; margin-bottom: 20px;">${cleanMath(q.q)}</div>
-                <div class="sol-box">${cleanMath(q.solution)}</div>
+                <div style="font-size: 1.3rem; margin-bottom: 20px;">\${cleanMath(q.q)}</div>
+                <div class="sol-box">\${cleanMath(q.solution)}</div>
                 <div style="font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 15px 25px; border-radius: 10px; display: inline-block;">
-                    Correct Answer: ${cleanMath(q.correct)}
+                    Correct Answer: \${cleanMath(q.correct)}
                 </div>
             </div>
         </body></html>
-    `);
+    \`);
     solTab.document.close();
 };
 
@@ -156,7 +167,7 @@ window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const { data } = await supabaseClient.from('questions_table').select('test_name').eq('subject', sub);
     const select = document.getElementById('test-name-select');
-    select.innerHTML = data && data.length ? data.map(d => `<option value="${d.test_name}">${d.test_name}</option>`).join('') : '<option>No tests found</option>';
+    select.innerHTML = data && data.length ? data.map(d => \`<option value="\${d.test_name}">\${d.test_name}</option>\`).join('') : '<option>No tests found</option>';
 };
 
 window.onload = () => { updateTestNames(); };
@@ -168,7 +179,7 @@ window.prevQuestion = () => { if (currentIndex > 0) { currentIndex--; loadQuesti
 window.markForReview = () => { markedForReview[currentIndex] = true; if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); } updatePaletteUI(); saveToCloud(); };
 window.clearResponse = () => { userAnswers[currentIndex] = ""; confirmedAnswered[currentIndex] = false; markedForReview[currentIndex] = false; loadQuestion(); saveToCloud(); };
 
-function startTimer() { timerActive = true; const interval = setInterval(() => { if (!timerActive) { clearInterval(interval); return; } timeLeft--; document.getElementById('time').innerText = `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}`; if (timeLeft <= 0) finalSubmission(); }, 1000); }
+function startTimer() { timerActive = true; const interval = setInterval(() => { if (!timerActive) { clearInterval(interval); return; } timeLeft--; document.getElementById('time').innerText = \`\${Math.floor(timeLeft/60)}:\${(timeLeft%60).toString().padStart(2,'0')}\`; if (timeLeft <= 0) finalSubmission(); }, 1000); }
 window.confirmSubmit = () => { if (confirm("Submit examination?")) finalSubmission(); };
 
 async function saveToCloud() { 
@@ -199,15 +210,15 @@ function showFinalResultOnly() {
     res.style.display = 'block';
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('exam-header').style.display = 'none';
-    res.innerHTML = `<div class="tex2jax_process" style="padding:100px; text-align:center;">
+    res.innerHTML = \`<div class="tex2jax_process" style="padding:100px; text-align:center;">
         <h2 style="font-size: 2.5rem; color: #0b4a8f; margin-bottom: 20px;">Examination Complete</h2>
         <p style="color: #64748b; font-size: 1.2rem; margin-bottom: 40px;">Your responses have been recorded successfully.</p>
         <button onclick="openDetailedSolution(0)" style="background: #0b4a8f; color: white; border: none; padding: 18px 45px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 1.1rem;">VIEW SOLUTIONS</button>
-    </div>`;
+    </div>\`;
     refreshMath(res);
 }
 
-function renderPalette() { document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `<div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;">${i+1}</div>`).join(''); }
+function renderPalette() { document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => \`<div id="dot-\${i}" onclick="jumpTo(\${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;">\${i+1}</div>\`).join(''); }
 window.jumpTo = (i) => { currentIndex = i; loadQuestion(); saveToCloud(); };
-function updatePaletteUI() { activeBank.forEach((_, i) => { const dot = document.getElementById(`dot-${i}`); if (!dot) return; dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff"); dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333"; dot.style.border = (i === currentIndex) ? "2.5px solid #0b4a8f" : "1px solid #ccc"; }); }
+function updatePaletteUI() { activeBank.forEach((_, i) => { const dot = document.getElementById(\`dot-\${i}\`); if (!dot) return; dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff"); dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333"; dot.style.border = (i === currentIndex) ? "2.5px solid #0b4a8f" : "1px solid #ccc"; }); }
 function updateStats() { const ans = confirmedAnswered.filter(x => x).length; document.getElementById('count-ans').innerText = ans; document.getElementById('count-not-ans').innerText = activeBank.length - ans; }
