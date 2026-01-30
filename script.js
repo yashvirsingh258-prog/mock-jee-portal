@@ -15,81 +15,80 @@ window.handleLogin = async function() {
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
     if (!email || !pass) { alert("Please enter both email and password."); return; }
+    
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
     if (error) alert("Login failed: " + error.message);
-    else if (data.user) { currentUserEmail = data.user.email; startExam(); }
+    else if (data.user) { 
+        currentUserEmail = data.user.email; 
+        await fetchQuestionsAndStart(); 
+    }
 };
 
-// 4. CLOUD PERSISTENCE
-async function saveToCloud() {
-    if (!currentUserEmail) return;
-    const sub = document.getElementById('subject-select').value;
-    const testName = document.getElementById('test-name-select').value;
-    const payload = { 
-        username: currentUserEmail, subject: sub, test_name: testName, current_index: currentIndex,
-        user_answers: JSON.parse(JSON.stringify(userAnswers)),
-        confirmed_answered: JSON.parse(JSON.stringify(confirmedAnswered)),
-        marked_for_review: JSON.parse(JSON.stringify(markedForReview)),
-        time_left: timeLeft, is_finished: false
-    };
-    await supabaseClient.from('student_progress').upsert(payload, { onConflict: 'username, subject, test_name' });
-}
-
-// 5. DYNAMIC DATA FETCHING
+// 4. DYNAMIC FETCHING LOGIC
 window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
-    if (!testSelect) return;
-
+    
     const { data, error } = await supabaseClient
         .from('questions_table')
         .select('test_name')
         .eq('subject', sub);
 
-    if (error) {
-        console.error("Error fetching test names:", error);
-        return;
-    }
-
-    if (data && data.length > 0) {
+    if (!error && testSelect) {
         testSelect.innerHTML = data.map(row => 
             `<option value="${row.test_name}">${row.test_name}</option>`
         ).join('');
-    } else {
-        testSelect.innerHTML = `<option value="">No tests available</option>`;
     }
 };
 
-window.setView = function(view) {
-    document.getElementById('login-screen').style.display = (view === 'login') ? 'flex' : 'none';
-    document.getElementById('exam-header').style.display = (view === 'exam') ? 'flex' : 'none';
-    document.getElementById('quiz-container').style.display = (view === 'exam') ? 'flex' : 'none';
-    document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
-};
-
-window.startExam = async function() {
+async function fetchQuestionsAndStart() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
 
-    if (!testName) {
-        alert("Please select a test first.");
-        return;
-    }
-
-    const { data: qData, error: qError } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from('questions_table')
         .select('question_data')
         .eq('subject', sub)
         .eq('test_name', testName)
         .single();
 
-    if (qError || !qData) {
-        alert("Could not load questions for this test.");
+    if (error || !data) {
+        alert("Could not load test questions.");
         return;
     }
 
-    activeBank = qData.question_data;
+    activeBank = data.question_data; 
+    startExam();
+}
 
+// 5. CLOUD PERSISTENCE
+async function saveToCloud() {
+    if (!currentUserEmail) return;
+    const sub = document.getElementById('subject-select').value;
+    const testName = document.getElementById('test-name-select').value;
+    
+    const payload = { 
+        username: currentUserEmail, 
+        subject: sub, 
+        test_name: testName, 
+        current_index: currentIndex,
+        user_answers: [...userAnswers],
+        confirmed_answered: [...confirmedAnswered],
+        marked_for_review: [...markedForReview],
+        time_left: timeLeft, 
+        is_finished: false
+    };
+
+    await supabaseClient.from('student_progress').upsert(payload, { 
+        onConflict: 'username, subject, test_name' 
+    });
+}
+
+// 6. EXAM LOGIC
+window.startExam = async function() {
+    const sub = document.getElementById('subject-select').value;
+    const testName = document.getElementById('test-name-select').value;
+    
     const { data } = await supabaseClient.from('student_progress')
         .select('*')
         .eq('username', currentUserEmail)
@@ -97,28 +96,32 @@ window.startExam = async function() {
         .eq('test_name', testName)
         .maybeSingle();
 
-    if (data && data.is_finished === true) {
-        alert("This test has already been submitted.");
-        userAnswers = data.user_answers || [];
+    if (data && data.is_finished) {
+        userAnswers = data.user_answers;
         showFinalResultOnly(); 
         return;
     }
 
     if (data && confirm("Resume existing progress?")) {
         currentIndex = data.current_index;
-        userAnswers = data.user_answers || new Array(activeBank.length).fill("");
-        confirmedAnswered = data.confirmed_answered || new Array(activeBank.length).fill(false);
-        markedForReview = data.marked_for_review || new Array(activeBank.length).fill(false);
+        userAnswers = data.user_answers;
+        confirmedAnswered = data.confirmed_answered;
+        markedForReview = data.marked_for_review;
         timeLeft = data.time_left;
     } else {
         userAnswers = new Array(activeBank.length).fill("");
         confirmedAnswered = new Array(activeBank.length).fill(false);
         markedForReview = new Array(activeBank.length).fill(false);
-        timeLeft = 40 * 60; currentIndex = 0;
     }
     
+    document.getElementById('exam-header').style.display = 'flex';
+    document.getElementById('quiz-container').style.display = 'flex';
+    document.getElementById('login-screen').style.display = 'none';
     document.getElementById('display-subject').innerText = `${sub.toUpperCase()} - ${testName}`;
-    setView('exam'); renderPalette(); startTimer(); loadQuestion();
+    
+    renderPalette(); 
+    startTimer(); 
+    loadQuestion();
 };
 
 window.loadQuestion = function() {
@@ -138,25 +141,51 @@ window.loadQuestion = function() {
                 }
             </div>
         </div>`;
-    updateStats(); updatePaletteUI();
+    updateStats(); 
+    updatePaletteUI();
     if (window.MathJax) MathJax.typesetPromise();
 };
 
 window.saveAnswer = function(val) { userAnswers[currentIndex] = val; saveToCloud(); };
+
 window.saveAndNext = function() {
-    if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; }
-    if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
+    if (userAnswers[currentIndex] !== "") { 
+        confirmedAnswered[currentIndex] = true; 
+        markedForReview[currentIndex] = false; 
+    }
+    if (currentIndex < activeBank.length - 1) { 
+        currentIndex++; 
+        loadQuestion(); 
+    }
     saveToCloud();
 };
+
+// FIXED: Previous button logic
+window.prevQuestion = function() {
+    if (currentIndex > 0) {
+        currentIndex--;
+        loadQuestion();
+        saveToCloud();
+    }
+};
+
 window.markForReview = function() {
     markedForReview[currentIndex] = true;
-    if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
-    else { updatePaletteUI(); }
+    if (currentIndex < activeBank.length - 1) { 
+        currentIndex++; 
+        loadQuestion(); 
+    } else { 
+        updatePaletteUI(); 
+    }
     saveToCloud();
 };
+
 window.clearResponse = function() {
-    userAnswers[currentIndex] = ""; confirmedAnswered[currentIndex] = false; markedForReview[currentIndex] = false;
-    loadQuestion(); saveToCloud();
+    userAnswers[currentIndex] = ""; 
+    confirmedAnswered[currentIndex] = false; 
+    markedForReview[currentIndex] = false;
+    loadQuestion(); 
+    saveToCloud();
 };
 
 function startTimer() {
@@ -164,7 +193,6 @@ function startTimer() {
     const interval = setInterval(() => {
         if (!timerActive) { clearInterval(interval); return; }
         timeLeft--;
-        if (timeLeft % 30 === 0) saveToCloud();
         document.getElementById('time').innerText = `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}`;
         if (timeLeft <= 0) finalSubmission();
     }, 1000);
@@ -172,7 +200,7 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
-// UPDATED: SOLUTIONS WINDOW WITH MATHJAX SUPPORT
+// UPDATED: Solutions window with MathJax support
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
@@ -200,7 +228,7 @@ window.openDetailedSolution = function(idx) {
             <div class="container">
                 <h1>Step-by-Step Solution</h1>
                 <div class="q-box"><strong>Question ${idx+1}:</strong><br>${q.q}</div>
-                <div id="solution-content">${q.solution.split('<br>').map(s => `<div class="step">${s}</div>`).join('')}</div>
+                <div>${q.solution.split('<br>').map(s => `<div class="step">${s}</div>`).join('')}</div>
                 <div class="final">Correct Answer: ${q.correct}</div>
             </div>
         </body>
@@ -212,59 +240,44 @@ window.openDetailedSolution = function(idx) {
 function showFinalResultOnly() {
     timerActive = false; 
     let score = 0;
-    const totalQuestions = activeBank.length;
+    const total = activeBank.length;
     
     let tableRows = activeBank.map((q, i) => {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
         return `
-            <tr style="border-bottom: 1px solid #edf2f7;">
-                <td style="padding:15px; text-align:center; color:#718096; font-weight:600;">${i+1}</td>
-                <td style="padding:15px; text-align:left; color:#2d3748;">${q.q}</td>
-                <td style="padding:15px; text-align:center;">
-                    <span style="padding:4px 12px; border-radius:12px; font-weight:bold; font-size:0.85rem; 
-                        background:${isCorrect ? '#c6f6d5' : '#fed7d7'}; color:${isCorrect ? '#22543d' : '#822727'};">
+            <tr style=\"border-bottom: 1px solid #edf2f7;\">
+                <td style=\"padding:15px; text-align:center; font-weight:600;\">${i+1}</td>
+                <td style=\"padding:15px; text-align:left;\">${q.q}</td>
+                <td style=\"padding:15px; text-align:center;\">
+                    <span style=\"padding:4px 12px; border-radius:12px; font-weight:bold; background:${isCorrect ? '#c6f6d5' : '#fed7d7'}; color:${isCorrect ? '#22543d' : '#822727'};\">
                         ${userAnswers[i] || 'N/A'}
                     </span>
                 </td>
-                <td style="padding:15px; text-align:center; font-weight:bold; color:#0b4a8f;">${q.correct}</td>
-                <td style="padding:15px; text-align:center;">
-                    <button onclick="openDetailedSolution(${i})" style="background:none; border:1.5px solid #0b4a8f; color:#0b4a8f; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:600; font-size:0.75rem; transition: 0.2s;" onmouseover="this.style.background='#0b4a8f'; this.style.color='white'" onmouseout="this.style.background='none'; this.style.color='#0b4a8f'">View Solution</button>
+                <td style=\"padding:15px; text-align:center; font-weight:bold; color:#0b4a8f;\">${q.correct}</td>
+                <td style=\"padding:15px; text-align:center;\">
+                    <button onclick=\"openDetailedSolution(${i})\" style=\"background:none; border:1.5px solid #0b4a8f; color:#0b4a8f; padding:6px 12px; border-radius:6px; cursor:pointer;\">View Solution</button>
                 </td>
             </tr>`;
     }).join('');
 
-    const percentage = ((score / totalQuestions) * 100).toFixed(2);
-    setView('result');
-
-    document.getElementById('score-val').innerHTML = `
-        <div style="display: flex; justify-content: center; margin-bottom: 40px;">
-            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(11, 74, 143, 0.3); text-align: center; min-width: 320px;">
-                <div style="font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">Score Report</div>
-                <div style="font-size: 3.5rem; font-weight: 800; margin: 0; line-height: 1;">${score} <span style="font-size: 1.5rem; opacity: 0.7;">/ ${totalQuestions}</span></div>
-                <div style="margin-top: 20px; font-size: 1.4rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 8px 25px; border-radius: 50px;">
-                    Accuracy: ${percentage}%
-                </div>
-            </div>
-        </div>`;
-
-    document.getElementById('review-panel').innerHTML = `
-        <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;">
-            <table style="width:100%; border-collapse:collapse; font-family: sans-serif;">
+    document.getElementById('quiz-container').style.display = 'none';
+    document.getElementById('exam-header').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'block';
+    document.getElementById('result-screen').innerHTML = `
+        <div style=\"max-width: 900px; margin: 40px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1);\">
+            <h1 style=\"text-align:center; color:#0b4a8f;\">Test Summary</h1>
+            <h2 style=\"text-align:center;\">Score: ${score} / ${total}</h2>
+            <table style=\"width:100%; border-collapse:collapse; margin-top:20px;\">
                 <thead>
-                    <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;">Q.No</th>
-                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px; text-align:left;">Question</th>
-                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;">Your Response</th>
-                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;">Correct</th>
-                        <th style="padding:18px; color:#4a5568; text-transform:uppercase; font-size:0.75rem; letter-spacing:1px;">Solution</th>
+                    <tr style=\"background:#f8fafc;\">
+                        <th>#</th><th>Question</th><th>Your Ans</th><th>Correct</th><th>Action</th>
                     </tr>
                 </thead>
                 <tbody>${tableRows}</tbody>
             </table>
         </div>`;
-
-    if (window.MathJax) setTimeout(() => { MathJax.typesetPromise([document.getElementById('review-panel')]); }, 200);
+    if (window.MathJax) MathJax.typesetPromise();
 }
 
 window.finalSubmission = async function() {
@@ -277,9 +290,10 @@ window.finalSubmission = async function() {
     if (!error) showFinalResultOnly();
 };
 
+// UI HELPERS
 function renderPalette() {
     document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
-        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px;">${i+1}</div>`).join('');
+        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:600; font-size:0.8rem;">${i+1}</div>`).join('');
 }
 window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
 function updatePaletteUI() {
@@ -297,8 +311,4 @@ function updateStats() {
     document.getElementById('count-not-ans').innerText = activeBank.length - ans;
 }
 
-document.addEventListener('DOMContentLoaded', () => { 
-    updateTestNames(); 
-    const subSelect = document.getElementById('subject-select');
-    if(subSelect) subSelect.addEventListener('change', updateTestNames);
-});
+document.addEventListener('DOMContentLoaded', updateTestNames);
