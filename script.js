@@ -19,27 +19,26 @@ window.MathJax = {
     }
 };
 
-// 4. THE SUPER-CLEANER
-// This converts database over-escaping (\\\\\\\\int) into standard LaTeX (\int)
+// 4. THE REFINED CLEANER
+// Adjusted to specifically handle the double-escaping found in your CSV data
 function cleanMath(str) {
     if (!str) return "";
     return str
-        .replace(/\\\\\\\\/g, '\\') // Fixes quadruple slashes
-        .replace(/\\\\/g, '\\')     // Fixes double slashes
-        .replace(/\\n/g, '\n');     // Fixes vertical steps
+        .replace(/\\\\/g, '\\')     // Converts double slashes (\\int) to single (\int)
+        .replace(/\\n/g, '<br>');   // Converts \\n to HTML breaks for vertical solution steps
 }
 
 function refreshMath(element) {
     if (window.MathJax && window.MathJax.typesetPromise) {
-        // Delay ensures the DOM has painted before MathJax scans
+        // A 300ms delay ensures the new HTML is fully settled in the DOM before rendering
         setTimeout(() => {
             window.MathJax.typesetPromise([element])
                 .then(() => {
-                    // Second pass to catch any missed symbols during fast navigation
+                    // Double-pass ensures no symbols are missed during fast navigation
                     return window.MathJax.typesetPromise([element]);
                 })
                 .catch((err) => console.log('MathJax Error:', err));
-        }, 250); 
+        }, 300); 
     }
 }
 
@@ -73,7 +72,7 @@ window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // Applying Super-Cleaner to Question and Options
+    // Applying the updated cleaner to ensure symbols render correctly from the DB
     const displayQ = cleanMath(qData.q);
     const displayOptions = qData.options.map(opt => cleanMath(opt));
 
@@ -116,7 +115,6 @@ window.openDetailedSolution = function(idx) {
             body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; line-height: 1.6; color: #1e293b; }
             .card { background: white; max-width: 850px; margin: auto; padding: 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
             .sol-box { 
-                white-space: pre-wrap; 
                 background: #f1f5f9; 
                 padding: 30px; 
                 border-radius: 12px; 
@@ -170,7 +168,7 @@ window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const { data } = await supabaseClient.from('questions_table').select('test_name').eq('subject', sub);
     const select = document.getElementById('test-name-select');
-    select.innerHTML = data && data.length ? data.map(d => `<option value="${d.test_name}">${d.test_name}</option>`).join('') : '<option>No tests found</option>';
+    select.innerHTML = data && data.length ? data.map(d => \`<option value="\${d.test_name}">\${d.test_name}</option>\`).join('') : '<option>No tests found</option>';
 };
 
 // Initial call to load tests on page load
@@ -183,7 +181,7 @@ window.prevQuestion = () => { if (currentIndex > 0) { currentIndex--; loadQuesti
 window.markForReview = () => { markedForReview[currentIndex] = true; if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); } updatePaletteUI(); saveToCloud(); };
 window.clearResponse = () => { userAnswers[currentIndex] = ""; confirmedAnswered[currentIndex] = false; markedForReview[currentIndex] = false; loadQuestion(); saveToCloud(); };
 
-function startTimer() { timerActive = true; const interval = setInterval(() => { if (!timerActive) { clearInterval(interval); return; } timeLeft--; document.getElementById('time').innerText = `${Math.floor(timeLeft/60)}:${(timeLeft%60).toString().padStart(2,'0')}`; if (timeLeft <= 0) finalSubmission(); }, 1000); }
+function startTimer() { timerActive = true; const interval = setInterval(() => { if (!timerActive) { clearInterval(interval); return; } timeLeft--; document.getElementById('time').innerText = \`\${Math.floor(timeLeft/60)}:\${(timeLeft%60).toString().padStart(2,'0')}\`; if (timeLeft <= 0) finalSubmission(); }, 1000); }
 window.confirmSubmit = () => { if (confirm("Submit examination?")) finalSubmission(); };
 
 async function saveToCloud() { 
@@ -222,7 +220,7 @@ function showFinalResultOnly() {
     refreshMath(res);
 }
 
-function renderPalette() { document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `<div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;">${i+1}</div>`).join(''); }
+function renderPalette() { document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => \`<div id="dot-\${i}" onclick="jumpTo(\${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;">\${i+1}</div>\`).join(''); }
 window.jumpTo = (i) => { currentIndex = i; loadQuestion(); saveToCloud(); };
-function updatePaletteUI() { activeBank.forEach((_, i) => { const dot = document.getElementById(`dot-${i}`); if (!dot) return; dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff"); dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333"; dot.style.border = (i === currentIndex) ? "2.5px solid #0b4a8f" : "1px solid #ccc"; }); }
+function updatePaletteUI() { activeBank.forEach((_, i) => { const dot = document.getElementById(\`dot-\${i}\`); if (!dot) return; dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff"); dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333"; dot.style.border = (i === currentIndex) ? "2.5px solid #0b4a8f" : "1px solid #ccc"; }); }
 function updateStats() { const ans = confirmedAnswered.filter(x => x).length; document.getElementById('count-ans').innerText = ans; document.getElementById('count-not-ans').innerText = activeBank.length - ans; }
