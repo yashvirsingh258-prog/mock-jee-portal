@@ -19,17 +19,6 @@ window.MathJax = {
     }
 };
 
-// 4. THE UPDATED CLEANER
-// This version explicitly targets the \n found in your CSV
-function cleanMath(str) {
-    if (!str) return "";
-    return str
-        .replace(/\\\\\\\\/g, '\\') // Fixes quadruple slashes
-        .replace(/\\\\/g, '\\')     // Fixes double slashes
-        .replace(/\\n/g, '<br>')    // CONVERTS \n TEXT INTO HTML LINE BREAKS
-        .replace(/\n/g, '<br>');    // Handles any existing real newlines
-}
-
 function refreshMath(element) {
     if (window.MathJax && window.MathJax.typesetPromise) {
         setTimeout(() => {
