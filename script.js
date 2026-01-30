@@ -39,14 +39,13 @@ window.handleLogin = async function() {
 };
 
 // 4. THE SUPER-CLEANER
-// This version now correctly converts \n to <br> for browser rendering
 function cleanMath(str) {
     if (!str) return "";
     return str
         .replace(/\\\\\\\\/g, '\\') // Fixes quadruple slashes
         .replace(/\\\\/g, '\\')     // Fixes double slashes
-        .replace(/\\n/g, '<br>')    // CHANGES \n TO HTML BREAKS FOR VERTICAL STEPS
-        .replace(/\n/g, '<br>');    // Fallback for real newlines
+        .replace(/\\n/g, '<br>')    // TARGETED FIX: Converts \n text into HTML breaks for vertical steps
+        .replace(/\n/g, '<br>');    
 }
 
 function refreshMath(element) {
@@ -208,19 +207,18 @@ window.openDetailedSolution = function(idx) {
     const qData = activeBank[idx];
     const solTab = window.open('', '_blank');
     
-    // Using cleaned math for solutions to ensure steps are on new lines
     const displaySol = cleanMath(qData.solution);
     const displayQ = cleanMath(qData.q);
 
-    solTab.document.write(`
+    solTab.document.write(\`
         <html><head>
-        <title>Solution - Question ${idx + 1}</title>
+        <title>Solution - Question \${idx + 1}</title>
         <script>
             window.MathJax = {
                 tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']] }
             };
         </script>
-        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+        <script src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\"></script>
         <style>
             body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; line-height: 1.6; color: #1e293b; }
             .sol-card { background: white; max-width: 850px; margin: auto; padding: 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
@@ -231,20 +229,20 @@ window.openDetailedSolution = function(idx) {
                 border-left: 6px solid #0b4a8f; 
                 margin: 25px 0; 
                 font-size: 1.15rem;
-                line-height: 2.2; /* Spacing for complex math steps */
+                line-height: 2.2;
             }
         </style></head>
-        <body class="tex2jax_process">
-            <div class="sol-card">
-                <h2 style="color: #0b4a8f; margin-bottom: 30px;">Step-by-Step Solution</h2>
-                <div style="font-size: 1.3rem; margin-bottom: 20px;">${displayQ}</div>
-                <div class="sol-box">${displaySol}</div>
-                <div style="font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 15px 25px; border-radius: 10px; display: inline-block;">
-                    Correct Answer: ${cleanMath(qData.correct)}
+        <body class=\"tex2jax_process\">
+            <div class=\"sol-card\">
+                <h2 style=\"color: #0b4a8f; margin-bottom: 30px;\">Step-by-Step Solution</h2>
+                <div style=\"font-size: 1.3rem; margin-bottom: 20px;\">\${displayQ}</div>
+                <div class=\"sol-box\">\${displaySol}</div>
+                <div style=\"font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 15px 25px; border-radius: 10px; display: inline-block;\">
+                    Correct Answer: \${cleanMath(qData.correct)}
                 </div>
             </div>
         </body></html>
-    `);
+    \`);
     solTab.document.close();
 };
 
@@ -260,7 +258,7 @@ window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const { data } = await supabaseClient.from('questions_table').select('test_name').eq('subject', sub);
     const select = document.getElementById('test-name-select');
-    select.innerHTML = data && data.length ? data.map(d => `<option value="${d.test_name}">${d.test_name}</option>`).join('') : '<option>No tests found</option>';
+    select.innerHTML = data && data.length ? data.map(d => \`<option value="\${d.test_name}">\${d.test_name}</option>\`).join('') : '<option>No tests found</option>';
 };
 
 window.onload = function() {
@@ -274,7 +272,7 @@ window.finalSubmission = async function() {
     showFinalResultOnly();
 };
 
-function renderPalette() { document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `<div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;">${i+1}</div>`).join(''); }
+function renderPalette() { document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => \`<div id=\"dot-\${i}\" onclick=\"jumpTo(\${i})\" style=\"width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;\">\${i+1}</div>\`).join(''); }
 window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
-function updatePaletteUI() { activeBank.forEach((_, i) => { const dot = document.getElementById(`dot-${i}`); if (!dot) return; dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff"); dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333"; dot.style.border = (i === currentIndex) ? "2.5px solid #0b4a8f" : "1px solid #ccc"; }); }
+function updatePaletteUI() { activeBank.forEach((_, i) => { const dot = document.getElementById(\`dot-\${i}\`); if (!dot) return; dot.style.background = markedForReview[i] ? \"#6f42c1\" : (confirmedAnswered[i] ? \"#198754\" : \"#fff\"); dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? \"#fff\" : \"#333\"; dot.style.border = (i === currentIndex) ? \"2.5px solid #0b4a8f\" : \"1px solid #ccc\"; }); }
 function updateStats() { const ans = confirmedAnswered.filter(x => x).length; document.getElementById('count-ans').innerText = ans; document.getElementById('count-not-ans').innerText = activeBank.length - ans; }
