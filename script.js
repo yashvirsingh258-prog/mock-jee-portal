@@ -28,30 +28,35 @@ const questionBanks = {
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. AUTHENTICATION
+// 3. AUTHENTICATION (Matching your index.html exactly)
 window.handleLogin = async function() {
-    const email = document.getElementById('login-id').value.trim();
-    const pass = document.getElementById('login-password').value.trim();
+    const emailInput = document.getElementById('login-email');
+    const passInput = document.getElementById('login-pass');
 
-    if (!email || !pass) {
-        alert("Please enter both ID and password.");
+    if (!emailInput || !passInput) {
+        console.error("HTML Input elements not found!");
         return;
     }
 
-    try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-        if (error) throw error;
+    const email = emailInput.value.trim();
+    const pass = passInput.value.trim();
 
-        if (data.user) {
-            currentUserEmail = data.user.email;
-            await startExam(); // Wait for data check before proceeding
-        }
-    } catch (err) {
-        alert("Login failed: " + err.message);
+    if (!email || !pass) {
+        alert("Please enter both email and password.");
+        return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+
+    if (error) {
+        alert("Login failed: " + error.message);
+    } else if (data.user) {
+        currentUserEmail = data.user.email;
+        startExam(); 
     }
 };
 
-// 4. PERSISTENCE
+// 4. CLOUD PERSISTENCE
 async function saveToCloud() {
     if (!currentUserEmail) return;
     const sub = document.getElementById('subject-select').value;
@@ -63,7 +68,7 @@ async function saveToCloud() {
         confirmed_answered: JSON.parse(JSON.stringify(confirmedAnswered)),
         marked_for_review: JSON.parse(JSON.stringify(markedForReview)),
         time_left: timeLeft,
-        is_finished: false 
+        is_finished: false
     };
     await supabaseClient.from('student_progress').upsert(payload, { onConflict: 'username' });
 }
@@ -84,17 +89,16 @@ window.setView = function(view) {
     document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
 };
 
-// 6. START EXAM (WITH DB LOCK CHECK)
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     activeBank = questionBanks[sub] || questionBanks['mathematics'];
     
-    // Fetch data and check is_finished
     const { data } = await supabaseClient.from('student_progress').select('*')
         .eq('username', currentUserEmail).eq('subject', sub).maybeSingle();
 
+    // LOCK CHECK
     if (data && data.is_finished === true) {
-        alert("This examination is already completed.");
+        alert("This test has already been submitted.");
         userAnswers = data.user_answers || [];
         showFinalResultOnly(); 
         return;
@@ -144,7 +148,6 @@ window.loadQuestion = function() {
 };
 
 window.saveAnswer = function(val) { userAnswers[currentIndex] = val; saveToCloud(); };
-
 window.saveAndNext = function() {
     if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; }
     if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); }
@@ -201,31 +204,14 @@ function showFinalResultOnly() {
 
     document.getElementById('score-val').innerHTML = `
         <div style="display: flex; justify-content: center; margin-bottom: 40px;">
-            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; min-width: 320px;">
-                <div style="font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">Test Summary</div>
-                <div style="font-size: 3.5rem; font-weight: 800; margin: 0; line-height: 1;">${score} <span style="font-size: 1.5rem; opacity: 0.7;">/ ${totalQuestions}</span></div>
-                <div style="margin-top: 20px; font-size: 1.2rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 8px 25px; border-radius: 50px;">
-                    Accuracy: ${percentage}%
-                </div>
+            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 20px; text-align: center;">
+                <div style="font-size: 3.5rem; font-weight: 800;">${score} / ${totalQuestions}</div>
+                <div>Accuracy: ${percentage}%</div>
             </div>
         </div>`;
 
-    document.getElementById('review-panel').innerHTML = `
-        <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-            <table style="width:100%; border-collapse:collapse;">
-                <thead>
-                    <tr style="background-color: #f8f9fa;">
-                        <th style="padding:15px;">Q.No</th>
-                        <th style="padding:15px; text-align:left;">Question</th>
-                        <th style="padding:15px;">Your Answer</th>
-                        <th style="padding:15px;">Correct Answer</th>
-                    </tr>
-                </thead>
-                <tbody>${tableRows}</tbody>
-            </table>
-        </div>`;
-
-    if (window.MathJax) setTimeout(() => { MathJax.typesetPromise([document.getElementById('review-panel')]); }, 200);
+    document.getElementById('review-panel').innerHTML = `<table><tbody>${tableRows}</tbody></table>`;
+    if (window.MathJax) setTimeout(() => { MathJax.typesetPromise(); }, 200);
 }
 
 window.finalSubmission = async function() {
@@ -234,35 +220,27 @@ window.finalSubmission = async function() {
         username: currentUserEmail, 
         subject: sub, 
         is_finished: true, 
-        user_answers: [...userAnswers],
-        time_left: 0
+        user_answers: [...userAnswers] 
     }, { onConflict: 'username' });
 
-    if (!error) {
-        showFinalResultOnly();
-    } else {
-        alert("Submission failed. Error: " + error.message);
-    }
+    if (!error) showFinalResultOnly();
 };
 
-// 7. UI HELPERS (PREMIUM COLORS)
+// UI HELPERS
 function renderPalette() {
     document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
         <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px;">${i+1}</div>`).join('');
 }
 window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
-
 function updatePaletteUI() {
     activeBank.forEach((_, i) => {
         const dot = document.getElementById(`dot-${i}`);
         if (!dot) return;
-        // PREMIUM COLORS: Answered (Emerald), Review (Royal Purple)
         dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff");
         dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333";
         dot.style.border = (i === currentIndex) ? "2px solid #0b4a8f" : "1px solid #ccc";
     });
 }
-
 function updateStats() {
     const ans = confirmedAnswered.filter(x => x).length;
     document.getElementById('count-ans').innerText = ans;
