@@ -135,56 +135,96 @@ window.startExam = async function() {
 };
 
 window.loadQuestion = function() {
+    // 1. Get current question data and saved answer
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     const savedAnswer = userAnswers[currentIndex] || "";
 
+    // 2. Clear and rebuild the question area
     area.innerHTML = `
     <div style="padding: 20px 50px;">
         <div style="margin-bottom: 20px;">
-            <span style="background: #0b4a8f; color: white; padding: 5px 15px; border-radius: 4px;">
-                Question ${currentIndex + 1}
+            <span class="q-type-label">
+                Question ${currentIndex + 1} (${qData.type === 'mcq' ? 'MCQ' : 'Integer Type'})
             </span>
         </div>
-        <div style="font-size: 1.2rem; margin-bottom: 25px;">${qData.q}</div>
-        <div id="options-container" style="display: flex; flex-direction: column; gap: 10px;">
-            ${qData.type === 'mcq' ? qData.options.map((opt, i) => {
-                const isSelected = String(opt) === String(savedAnswer);
-                return `
-                <label onclick="handleSelection(event, '${opt}')" style="padding: 15px; border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; background: ${isSelected ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer; display: block;">
-                    <input type="radio" name="q-group" value="${opt}" ${isSelected ? 'checked' : ''} style="pointer-events: none;"> 
-                    ${opt}
-                </label>`;
-            }).join('') : `
-                <input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)" value="${savedAnswer}">`
+
+        <div style="font-size: 1.2rem; margin-bottom: 25px; line-height: 1.6;">
+            ${qData.q}
+        </div>
+
+        <div id="options-container" style="display: flex; flex-direction: column; gap: 12px;">
+            ${qData.type === 'mcq' ? 
+                qData.options.map((opt, i) => {
+                    // Critical: Use strict string comparison for LaTeX stability
+                    const isSelected = String(opt).trim() === String(savedAnswer).trim();
+                    
+                    return `
+                    <label style="padding: 15px; border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; 
+                           background: ${isSelected ? '#f0f7ff' : '#fff'}; border-radius: 8px; 
+                           cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 10px;">
+                        <input type="radio" 
+                               name="q-group-${currentIndex}" 
+                               value="${opt}" 
+                               onchange="saveAnswer(this.value)" 
+                               ${isSelected ? 'checked' : ''}
+                               style="width: 18px; height: 18px; cursor: pointer;">
+                        <span style="flex: 1;">${opt}</span>
+                    </label>`;
+                }).join('') 
+                : 
+                `<div>
+                    <span style="font-weight: bold; margin-right: 10px;">Answer:</span>
+                    <input type="number" 
+                           step="any" 
+                           class="num-input" 
+                           placeholder="Enter value"
+                           value="${savedAnswer}" 
+                           oninput="saveAnswer(this.value)"
+                           style="padding: 10px; border: 2px solid var(--primary); border-radius: 4px;">
+                </div>`
             }
         </div>
     </div>`;
 
+    // 3. Update Sidebar and Stats
     updateStats(); 
     updatePaletteUI();
-    if (window.MathJax) MathJax.typesetPromise();
+
+    // 4. Force MathJax to re-render formulas if present
+    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
+        MathJax.typesetPromise([area]).catch((err) => console.log('MathJax error:', err));
+    }
 };
 
+let isSaving = false; // Add this at the top of your script
+
 window.saveAnswer = function(val) {
+    if (isSaving) return; // Prevent double-triggering
+    
     userAnswers[currentIndex] = val;
     
-    // Manual color update
+    // 1. Update ONLY the UI (No innerHTML)
     const labels = document.querySelectorAll('#options-container label');
-    labels.forEach(l => {
-        const r = l.querySelector('input');
-        if (r && r.value === val) {
-            l.style.border = '1.5px solid #0b4a8f';
-            l.style.background = '#f0f7ff';
+    labels.forEach(label => {
+        const input = label.querySelector('input');
+        if (input && input.value === val) {
+            label.style.border = '1.5px solid #0b4a8f';
+            label.style.background = '#f0f7ff';
         } else {
-            l.style.border = '1px solid #ddd';
-            l.style.background = '#fff';
+            label.style.border = '1px solid #ddd';
+            label.style.background = '#fff';
         }
     });
 
     updateStats();
     updatePaletteUI();
-    saveToCloud();
+    
+    // 2. Debounce the cloud save
+    clearTimeout(window.saveTimeout);
+    window.saveTimeout = setTimeout(() => {
+        saveToCloud();
+    }, 500); 
 };
 
 window.handleSelection = function(event, val) {
