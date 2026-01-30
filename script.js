@@ -24,7 +24,7 @@ window.handleLogin = async function() {
     }
 };
 
-// 4. DYNAMIC FETCHING LOGIC
+// 4. DYNAMIC FETCHING LOGIC (STRICTLY FROM TABLE)
 window.updateTestNames = async function() {
     const sub = document.getElementById('subject-select').value;
     const testSelect = document.getElementById('test-name-select');
@@ -200,7 +200,7 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
-// UPDATED: Solutions window with MathJax support
+// UPDATED: Solutions window with MathJax support (Strict Layout)
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
@@ -209,27 +209,21 @@ window.openDetailedSolution = function(idx) {
         <head>
             <title>Detailed Solution - Q${idx+1}</title>
             <script>
-                window.MathJax = {
-                    tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']] },
-                    svg: { fontCache: 'global' }
-                };
+                window.MathJax = { tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']] } };
             </script>
             <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
             <style>
-                body { font-family: 'Segoe UI', sans-serif; padding: 40px; background: #f4f7f9; color: #333; line-height: 1.7; }
-                .container { max-width: 800px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-                h1 { color: #0b4a8f; border-bottom: 2px solid #0b4a8f; padding-bottom: 10px; }
-                .q-box { background: #f0f4f8; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 5px solid #0b4a8f; font-size: 1.1rem; }
-                .step { margin-bottom: 15px; padding: 12px; border-bottom: 1px dashed #e2e8f0; }
-                .final { font-weight: bold; color: #198754; font-size: 1.2rem; margin-top: 30px; }
+                body { font-family: 'Segoe UI', sans-serif; padding: 40px; background: #f4f7f9; }
+                .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 12px; border: 1px solid #ccc; }
+                .q-box { background: #f0f4f8; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid #0b4a8f; }
             </style>
         </head>
         <body>
             <div class="container">
-                <h1>Step-by-Step Solution</h1>
-                <div class="q-box"><strong>Question ${idx+1}:</strong><br>${q.q}</div>
-                <div>${q.solution.split('<br>').map(s => `<div class="step">${s}</div>`).join('')}</div>
-                <div class="final">Correct Answer: ${q.correct}</div>
+                <h2>Question ${idx+1} Solution</h2>
+                <div class="q-box"><strong>Question:</strong><br>${q.q}</div>
+                <div><strong>Step-by-Step Solution:</strong><br>${q.solution}</div>
+                <div style="margin-top:20px; color: #198754; font-weight: bold;">Correct Answer: ${q.correct}</div>
             </div>
         </body>
         </html>
@@ -237,6 +231,7 @@ window.openDetailedSolution = function(idx) {
     solTab.document.close();
 };
 
+// RESTORED: Original Summary Look and Feel
 function showFinalResultOnly() {
     timerActive = false; 
     let score = 0;
@@ -246,17 +241,13 @@ function showFinalResultOnly() {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
         return `
-            <tr style=\"border-bottom: 1px solid #edf2f7;\">
-                <td style=\"padding:15px; text-align:center; font-weight:600;\">${i+1}</td>
-                <td style=\"padding:15px; text-align:left;\">${q.q}</td>
-                <td style=\"padding:15px; text-align:center;\">
-                    <span style=\"padding:4px 12px; border-radius:12px; font-weight:bold; background:${isCorrect ? '#c6f6d5' : '#fed7d7'}; color:${isCorrect ? '#22543d' : '#822727'};\">
-                        ${userAnswers[i] || 'N/A'}
-                    </span>
-                </td>
-                <td style=\"padding:15px; text-align:center; font-weight:bold; color:#0b4a8f;\">${q.correct}</td>
-                <td style=\"padding:15px; text-align:center;\">
-                    <button onclick=\"openDetailedSolution(${i})\" style=\"background:none; border:1.5px solid #0b4a8f; color:#0b4a8f; padding:6px 12px; border-radius:6px; cursor:pointer;\">View Solution</button>
+            <tr style="border-bottom: 1px solid #ccc;">
+                <td style="padding:10px; text-align:center;">${i+1}</td>
+                <td style="padding:10px; text-align:left;">${q.q}</td>
+                <td style="padding:10px; text-align:center; font-weight:bold; color:${isCorrect ? '#198754' : '#d32f2f'};">${userAnswers[i] || 'N/A'}</td>
+                <td style="padding:10px; text-align:center; font-weight:bold; color:#0b4a8f;">${q.correct}</td>
+                <td style="padding:10px; text-align:center;">
+                    <button onclick="openDetailedSolution(${i})" style="cursor:pointer; padding:5px 10px;">View Solution</button>
                 </td>
             </tr>`;
     }).join('');
@@ -265,17 +256,24 @@ function showFinalResultOnly() {
     document.getElementById('exam-header').style.display = 'none';
     document.getElementById('result-screen').style.display = 'block';
     document.getElementById('result-screen').innerHTML = `
-        <div style=\"max-width: 900px; margin: 40px auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 25px rgba(0,0,0,0.1);\">
-            <h1 style=\"text-align:center; color:#0b4a8f;\">Test Summary</h1>
-            <h2 style=\"text-align:center;\">Score: ${score} / ${total}</h2>
-            <table style=\"width:100%; border-collapse:collapse; margin-top:20px;\">
+        <div style="max-width: 1000px; margin: 20px auto; padding: 20px; border: 1px solid #ccc; background: #fff;">
+            <h1 style="text-align:center; color:#0b4a8f;">Test Summary</h1>
+            <h2 style="text-align:center;">Final Score: ${score} / ${total}</h2>
+            <table style="width:100%; border-collapse:collapse; margin-top:20px;">
                 <thead>
-                    <tr style=\"background:#f8fafc;\">
-                        <th>#</th><th>Question</th><th>Your Ans</th><th>Correct</th><th>Action</th>
+                    <tr style="background:#eee;">
+                        <th style="padding:10px; border:1px solid #ccc;">#</th>
+                        <th style="padding:10px; border:1px solid #ccc; text-align:left;">Question</th>
+                        <th style="padding:10px; border:1px solid #ccc;">Your Answer</th>
+                        <th style="padding:10px; border:1px solid #ccc;">Correct Answer</th>
+                        <th style="padding:10px; border:1px solid #ccc;">Action</th>
                     </tr>
                 </thead>
                 <tbody>${tableRows}</tbody>
             </table>
+            <div style="text-align:center; margin-top:30px;">
+                <button onclick="location.reload()" style="padding:10px 20px; font-size:1rem; cursor:pointer;">Back to Dashboard</button>
+            </div>
         </div>`;
     if (window.MathJax) MathJax.typesetPromise();
 }
@@ -293,7 +291,7 @@ window.finalSubmission = async function() {
 // UI HELPERS
 function renderPalette() {
     document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
-        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:600; font-size:0.8rem;">${i+1}</div>`).join('');
+        <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px; border-radius:4px; font-weight:bold;">${i+1}</div>`).join('');
 }
 window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
 function updatePaletteUI() {
