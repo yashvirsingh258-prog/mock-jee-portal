@@ -137,8 +137,6 @@ window.startExam = async function() {
 window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
-    
-    // Ensure we handle empty values for the first render
     const currentSelection = userAnswers[currentIndex] || "";
 
     area.innerHTML = `<div style="padding: 20px 50px;">
@@ -152,7 +150,7 @@ window.loadQuestion = function() {
             ${qData.type === 'mcq' ? qData.options.map(opt => `
                 <label style="padding: 15px; border: 1px solid ${currentSelection === opt ? '#0b4a8f' : '#ddd'}; background: ${currentSelection === opt ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
                     <input type="radio" name="answer" value="${opt}" 
-                        onchange="saveAnswer('${opt}'); loadQuestion();" 
+                        onchange="saveAnswer('${opt}')" 
                         ${currentSelection === opt ? 'checked' : ''}> 
                     ${opt}
                 </label>`).join('') : `
@@ -164,16 +162,13 @@ window.loadQuestion = function() {
     
     updateStats(); 
     updatePaletteUI();
-    
-    if (window.MathJax) {
-        MathJax.typesetPromise();
-    }
+    if (window.MathJax) MathJax.typesetPromise();
 };
 
 window.saveAnswer = function(val) {
     userAnswers[currentIndex] = val;
     
-    // 1. Update the visual border/background of the selected option immediately
+    // Update the visual border and background of labels manually
     const labels = document.querySelectorAll('#question-area label');
     labels.forEach(label => {
         const input = label.querySelector('input');
@@ -186,9 +181,8 @@ window.saveAnswer = function(val) {
         }
     });
 
-    // 2. Sync with your existing palette and cloud logic
     updateStats(); 
-    updatePaletteUI();
+    updatePaletteUI(); // Turns the palette green
     saveToCloud();
 };
 
