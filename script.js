@@ -16,18 +16,9 @@ window.handleLogin = async function() {
     if (!emailInput || !passInput) return;
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
-    if (!email || pass) { 
-        if(statusMsg) statusMsg.innerText = "Please enter your email id.";
-        return; 
-    }
-
-    if (email || !pass) { 
-        if(statusMsg) statusMsg.innerText = "Please enter your password.";
-        return; 
-    }
     
     if (!email || !pass) { 
-        if(statusMsg) statusMsg.innerText = "Please enter email id and password.";
+        if(statusMsg) statusMsg.innerText = "Please enter your credentials.";
         return; 
     }
     
