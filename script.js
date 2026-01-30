@@ -161,14 +161,20 @@ function startTimer() {
 
 window.confirmSubmit = function() { if (confirm("Submit examination?")) finalSubmission(); };
 
-// NEW: SOLUTION WINDOW LOGIC
+// UPDATED: SOLUTION WINDOW LOGIC WITH MATH RENDERING FIX
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
-    solTab.document.write(`
+    
+    const content = `
         <html>
         <head>
             <title>Detailed Solution - Q${idx+1}</title>
+            <script>
+                window.MathJax = {
+                    tex: { inlineMath: [['$', '$'], ['\\\\(', '\\\\)']] }
+                };
+            </script>
             <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
             <style>
                 body { font-family: 'Segoe UI', sans-serif; padding: 40px; background: #f4f7f9; color: #333; line-height: 1.7; }
@@ -183,12 +189,22 @@ window.openDetailedSolution = function(idx) {
             <div class="container">
                 <h1>Step-by-Step Solution</h1>
                 <div class="q-box"><strong>Question ${idx+1}:</strong><br>${q.q}</div>
-                <div>${q.solution.split('<br>').map(s => `<div class="step">${s}</div>`).join('')}</div>
+                <div id="sol-content">${q.solution.split('<br>').map(s => `<div class="step">${s}</div>`).join('')}</div>
                 <div class="final">Correct Answer: ${q.correct}</div>
             </div>
+            <script>
+                // This triggers MathJax once the window has loaded
+                window.onload = () => {
+                   if (window.MathJax && window.MathJax.typeset) {
+                      window.MathJax.typeset();
+                   }
+                };
+            </script>
         </body>
         </html>
-    `);
+    `;
+    
+    solTab.document.write(content);
     solTab.document.close();
 };
 
