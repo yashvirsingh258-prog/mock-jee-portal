@@ -30,8 +30,8 @@ let currentUserEmail = "";
 
 // 3. AUTHENTICATION
 window.handleLogin = async function() {
-    const email = document.getElementById('login-email').value.trim();
-    const pass = document.getElementById('login-pass').value.trim();
+    const email = document.getElementById('login-id').value.trim();
+    const pass = document.getElementById('login-password').value.trim();
 
     if (!email || !pass) {
         alert("Please enter both email and password.");
@@ -80,19 +80,20 @@ window.setView = function(view) {
     document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
 };
 
-// 6. START EXAM WITH SECURITY CHECK
+// 6. START EXAM WITH STRICT SECURITY CHECK
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     activeBank = questionBanks[sub] || questionBanks['mathematics'];
     
+    // Fetch fresh data from Supabase to check status
     const { data } = await supabaseClient.from('student_progress').select('*')
         .eq('username', currentUserEmail).eq('subject', sub).maybeSingle();
 
-    // NEW SECURITY LOGIC: Block resume if test is finished
-    if (data && data.is_finished) {
-        alert("This test has already been submitted. You can only view your results.");
-        userAnswers = data.user_answers;
-        showFinalResultOnly(); // Display the result summary
+    // BLOCK ENTRY IF TEST IS MARKED FINISHED
+    if (data && data.is_finished === true) {
+        alert("Access Denied: You have already submitted this examination.");
+        userAnswers = data.user_answers || [];
+        showFinalResultOnly(); 
         return;
     }
 
@@ -127,7 +128,7 @@ window.loadQuestion = function() {
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 ${data.type === 'mcq' ? 
                     data.options.map(opt => `
-                        <label style="padding: 15px; border: 1px solid ${userAnswers[currentIndex] === opt ? '#8e44ad' : '#ddd'}; background: ${userAnswers[currentIndex] === opt ? '#f9f0ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
+                        <label style="padding: 15px; border: 1px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#ddd'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 8px; cursor: pointer;">
                             <input type="radio" name="answer" value="${opt}" onchange="saveAnswer('${opt}'); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> ${opt}
                         </label>`).join('') :
                     `<input type="text" style="padding: 15px; border-radius: 8px; border: 1px solid #ddd;" oninput="saveAnswer(this.value)" value="${userAnswers[currentIndex]}">`
@@ -187,7 +188,7 @@ function showFinalResultOnly() {
             <tr style="border-bottom: 1px solid #eee;">
                 <td style="padding:15px; text-align:center;">${i+1}</td>
                 <td style="padding:15px; text-align:left;">${q.q}</td>
-                <td style="padding:15px; text-align:center; font-weight:bold; color:${isCorrect ? '#27ae60' : '#e74c3c'}">${userAnswers[i] || 'N/A'}</td>
+                <td style="padding:15px; text-align:center; font-weight:bold; color:${isCorrect ? '#198754' : '#d93025'}">${userAnswers[i] || 'N/A'}</td>
                 <td style="padding:15px; text-align:center; font-weight:bold; color:#0b4a8f;">${q.correct}</td>
             </tr>`;
     }).join('');
@@ -197,8 +198,8 @@ function showFinalResultOnly() {
 
     document.getElementById('score-val').innerHTML = `
         <div style="display: flex; justify-content: center; margin-bottom: 40px;">
-            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e90ff 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(11, 74, 143, 0.3); text-align: center; min-width: 320px;">
-                <div style="font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">Score Report</div>
+            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(11, 74, 143, 0.3); text-align: center; min-width: 320px;">
+                <div style="font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">Final Score Report</div>
                 <div style="font-size: 3.5rem; font-weight: 800; margin: 0; line-height: 1;">${score} <span style="font-size: 1.5rem; opacity: 0.7;">/ ${totalQuestions}</span></div>
                 <div style="margin-top: 20px; font-size: 1.4rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 8px 25px; border-radius: 50px;">
                     Accuracy: ${percentage}%
@@ -224,28 +225,44 @@ function showFinalResultOnly() {
     if (window.MathJax) setTimeout(() => { MathJax.typesetPromise([document.getElementById('review-panel')]); }, 200);
 }
 
-// FINAL SUBMISSION LOGIC
+// ASYNC FINAL SUBMISSION LOGIC (WAITS FOR DB CONFIRMATION)
 window.finalSubmission = async function() {
-    showFinalResultOnly();
     const sub = document.getElementById('subject-select').value;
-    await supabaseClient.from('student_progress').upsert({ username: currentUserEmail, subject: sub, is_finished: true, user_answers: [...userAnswers] }, { onConflict: 'username' });
+    
+    // UPSERT THE FLAG AND AWAIT SUCCESSFUL RESPONSE
+    const { error } = await supabaseClient.from('student_progress').upsert({ 
+        username: currentUserEmail, 
+        subject: sub, 
+        is_finished: true, 
+        user_answers: [...userAnswers] 
+    }, { onConflict: 'username' });
+
+    if (error) {
+        alert("Submission failed. Please try again.");
+        return;
+    }
+
+    showFinalResultOnly();
 };
 
-// 7. UI HELPERS
+// 7. UI HELPERS (PREMIUM COLORS)
 function renderPalette() {
     document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
         <div id="dot-${i}" onclick="jumpTo(${i})" style="width:35px; height:35px; border:1px solid #ccc; display:inline-block; margin:2px; cursor:pointer; text-align:center; line-height:35px;">${i+1}</div>`).join('');
 }
 window.jumpTo = function(i) { currentIndex = i; loadQuestion(); saveToCloud(); };
+
 function updatePaletteUI() {
     activeBank.forEach((_, i) => {
         const dot = document.getElementById(`dot-${i}`);
         if (!dot) return;
-        dot.style.background = markedForReview[i] ? "#8e44ad" : (confirmedAnswered[i] ? "#2d8c3c" : "#fff");
+        // PREMIUM COLORS: Answered (Emerald), Review (Royal Purple)
+        dot.style.background = markedForReview[i] ? "#6f42c1" : (confirmedAnswered[i] ? "#198754" : "#fff");
         dot.style.color = (markedForReview[i] || confirmedAnswered[i]) ? "#fff" : "#333";
         dot.style.border = (i === currentIndex) ? "2px solid #0b4a8f" : "1px solid #ccc";
     });
 }
+
 function updateStats() {
     const ans = confirmedAnswered.filter(x => x).length;
     document.getElementById('count-ans').innerText = ans;
