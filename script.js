@@ -16,7 +16,10 @@ window.handleLogin = async function() {
     if (!emailInput || !passInput) return;
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
-    if (!email || !pass) { alert("Please enter credentials."); return; }
+    if (!email || !pass) { 
+        if(statusMsg) statusMsg.innerText = "Please enter credentials.";
+        return; 
+    }
     
     const loginBtn = document.querySelector('.login-submit-btn');
     if(loginBtn) loginBtn.innerText = "AUTHENTICATING..."; 
