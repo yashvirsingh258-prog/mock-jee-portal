@@ -13,7 +13,7 @@ let activeBank = [],
     timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. AUTHENTICATION
+// 3. AUTHENTICATION (Restores original logic)
 window.handleLogin = async function() {
     const emailInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
@@ -97,14 +97,7 @@ async function saveToCloud() {
     });
 }
 
-// 6. EXAM LOGIC
-window.setView = function(view) {
-    document.getElementById('login-screen').style.display = (view === 'login') ? 'flex' : 'none';
-    document.getElementById('exam-header').style.display = (view === 'exam') ? 'flex' : 'none';
-    document.getElementById('quiz-container').style.display = (view === 'exam') ? 'flex' : 'none';
-    document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
-};
-
+// 6. EXAM NAVIGATION & LOGIC
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
@@ -134,8 +127,11 @@ window.startExam = async function() {
         markedForReview = new Array(activeBank.length).fill(false);
     }
     
+    document.getElementById('exam-header').style.display = 'flex';
+    document.getElementById('quiz-container').style.display = 'flex';
+    document.getElementById('login-screen').style.display = 'none';
     document.getElementById('display-subject').innerText = `${sub.toUpperCase()} - ${testName}`;
-    setView('exam'); 
+    
     renderPalette(); 
     startTimer(); 
     loadQuestion();
@@ -148,9 +144,9 @@ window.loadQuestion = function() {
     area.innerHTML = `
         <div class="question-card">
             <div style="margin-bottom: 20px;">
-                <span style="background: var(--primary); color: white; padding: 6px 16px; border-radius: 6px; font-weight: bold; font-size: 0.9rem;">Question ${currentIndex + 1}</span>
+                <span class="q-type-label">Question ${currentIndex + 1}</span>
             </div>
-            <div style="font-size: 1.25rem; margin-bottom: 30px; color: #1e293b; line-height: 1.5;">${qData.q}</div>
+            <div style="font-size: 1.25rem; margin-bottom: 30px; color: #1e293b; line-height: 1.6;">${qData.q}</div>
             <div style="display: flex; flex-direction: column; gap: 5px;">
                 ${qData.type === 'mcq' ? 
                     qData.options.map(opt => `
@@ -181,6 +177,7 @@ window.saveAndNext = function() {
     saveToCloud();
 };
 
+// Fixed Previous Button Logic
 window.prevQuestion = function() {
     if (currentIndex > 0) {
         currentIndex--;
@@ -222,7 +219,7 @@ window.confirmSubmit = function() {
     if (confirm("Are you sure you want to submit?")) finalSubmission(); 
 };
 
-// 7. SOLUTIONS & SUMMARY
+// 7. MODERN SUMMARY & SOLUTIONS
 window.openDetailedSolution = function(idx) {
     const q = activeBank[idx];
     const solTab = window.open('', '_blank');
@@ -241,7 +238,7 @@ window.openDetailedSolution = function(idx) {
             <div class="container">
                 <h2>Question ${idx+1} Solution</h2>
                 <div class="q-box">${q.q}</div>
-                <div>${q.solution}</div>
+                <div style="margin: 20px 0;">${q.solution}</div>
                 <h3 style="color:#2d8c3c;">Correct Answer: ${q.correct}</h3>
             </div>
         </body>
@@ -259,29 +256,32 @@ function showFinalResultOnly() {
         const isCorrect = userAnswers[i]?.toString().trim() === q.correct.toString().trim();
         if (isCorrect) score++;
         return `
-            <tr>
+            <tr class="summary-row">
                 <td style="font-weight:bold; color:var(--primary); text-align:center;">${i+1}</td>
                 <td style="color:#334155;">${q.q}</td>
                 <td style="text-align:center;"><span style="color:${isCorrect ? 'var(--success)' : 'var(--danger)'}; font-weight:bold;">${userAnswers[i] || 'N/A'}</span></td>
                 <td style="text-align:center; font-weight:bold; color:var(--primary);">${q.correct}</td>
                 <td style="text-align:center;">
-                    <button class="btn-pri" style="padding:8px 15px; border-radius:6px; font-size:0.8rem; cursor:pointer;" onclick="openDetailedSolution(${i})">View Solution</button>
+                    <button class="btn-pri" style="padding:8px 15px; border-radius:6px; cursor:pointer;" onclick="openDetailedSolution(${i})">View Solution</button>
                 </td>
             </tr>`;
     }).join('');
 
-    setView('result');
+    document.getElementById('quiz-container').style.display = 'none';
+    document.getElementById('exam-header').style.display = 'none';
+    document.getElementById('result-screen').style.display = 'block';
     document.getElementById('result-screen').innerHTML = `
         <div class="summary-container">
             <div class="result-header-card">
-                <h1 style="margin:0; font-size:2.5rem;">Test Summary</h1>
-                <div style="font-size:3rem; font-weight:800; margin-top:20px;">${score} <span style="font-size:1.2rem; opacity:0.7;">/ ${total}</span></div>
+                <h1 style="margin:0; font-size:2.5rem;">Test Result</h1>
+                <div style="font-size:3.5rem; font-weight:800; margin-top:20px;">${score} <span style="font-size:1.5rem; opacity:0.8;">/ ${total}</span></div>
+                <p style="margin-top:10px; opacity:0.9;">Accuracy: ${((score/total)*100).toFixed(2)}%</p>
             </div>
             <table class="result-table">
                 <thead><tr><th>#</th><th>Question</th><th>Your Ans</th><th>Correct</th><th>Action</th></tr></thead>
                 <tbody>${tableRows}</tbody>
             </table>
-            <button class="btn-sec" style="width:100%; padding:15px; margin-top:20px; cursor:pointer;" onclick="location.reload()">Back to Dashboard</button>
+            <button class="btn-sec" style="width:100%; padding:15px; margin-top:30px; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="location.reload()">Return to Dashboard</button>
         </div>`;
     if (window.MathJax) MathJax.typesetPromise();
 }
@@ -297,7 +297,7 @@ window.finalSubmission = async function() {
     if (!error) showFinalResultOnly();
 };
 
-// 8. UI HELPERS
+// 8. REFINED PALETTE UI (Maintains JEE Shapes)
 function renderPalette() {
     document.getElementById('palette-grid').innerHTML = activeBank.map((_, i) => `
         <div id="dot-${i}" class="dot" onclick="jumpTo(${i})">${i+1}</div>`).join('');
@@ -309,9 +309,11 @@ function updatePaletteUI() {
     activeBank.forEach((_, i) => {
         const dot = document.getElementById(`dot-${i}`);
         if (!dot) return;
-        dot.className = "dot";
+        
+        dot.className = "dot"; // Reset
         if (markedForReview[i]) dot.classList.add("review");
         else if (confirmedAnswered[i]) dot.classList.add("answered");
+        
         if (i === currentIndex) dot.classList.add("active");
     });
 }
