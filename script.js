@@ -21,7 +21,7 @@ window.MathJax = {
 };
 
 // 4. THE SUPER-CLEANER (The most important part)
-// This function fixes the "No Luck" issue by forcing the backslashes to exist
+
 function cleanMath(str) {
     if (!str) return "";
     return str
