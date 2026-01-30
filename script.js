@@ -3,7 +3,7 @@ const supabaseUrl = 'https://ijxsnunkfhudwnkrwmzk.supabase.co';
 const supabaseKey = 'sb_publishable_V-KT1zvp-73dqHHvmx3fNA_iHw53TCl';
 const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
-// 1. DATA
+// 1. DATA (MATHEMATICS)
 const questionBanks = {
     mathematics: [
         { type: "mcq", q: "Let $A = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & 1 \\\\ 0 & 0 & 1 \\end{bmatrix}$. If $A^n = \\begin{bmatrix} 1 & 0 & 0 \\\\ 0 & 1 & n \\\\ 0 & 0 & 1 \\end{bmatrix}$, then $|adj(A^{10})|$ is:", options: ["1", "10", "100", "0"], correct: "1", solution: "Since $|A|=1$, then $|A^{10}|=1$. $|adj(M)| = |M|^{n-1}$." },
@@ -28,7 +28,7 @@ const questionBanks = {
 let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [], markedForReview = [], timeLeft = 40 * 60, timerActive = false;
 let currentUserEmail = ""; 
 
-// 3. AUTHENTICATION (Fixed IDs for index.html)
+// 3. AUTHENTICATION
 window.handleLogin = async function() {
     const email = document.getElementById('login-id').value.trim();
     const pass = document.getElementById('login-password').value.trim();
@@ -38,17 +38,20 @@ window.handleLogin = async function() {
         return;
     }
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+        if (error) throw error;
 
-    if (error) {
-        alert("Login failed: " + error.message);
-    } else if (data.user) {
-        currentUserEmail = data.user.email;
-        startExam(); 
+        if (data.user) {
+            currentUserEmail = data.user.email;
+            await startExam(); // Wait for data check before proceeding
+        }
+    } catch (err) {
+        alert("Login failed: " + err.message);
     }
 };
 
-// 4. CLOUD PERSISTENCE
+// 4. PERSISTENCE
 async function saveToCloud() {
     if (!currentUserEmail) return;
     const sub = document.getElementById('subject-select').value;
@@ -81,17 +84,17 @@ window.setView = function(view) {
     document.getElementById('result-screen').style.display = (view === 'result') ? 'block' : 'none';
 };
 
-// 6. START EXAM (STRICT LOCK CHECK)
+// 6. START EXAM (WITH DB LOCK CHECK)
 window.startExam = async function() {
     const sub = document.getElementById('subject-select').value;
     activeBank = questionBanks[sub] || questionBanks['mathematics'];
     
+    // Fetch data and check is_finished
     const { data } = await supabaseClient.from('student_progress').select('*')
         .eq('username', currentUserEmail).eq('subject', sub).maybeSingle();
 
-    // IF IS_FINISHED IS TRUE, REDIRECT TO RESULTS
     if (data && data.is_finished === true) {
-        alert("This test has already been submitted. You can only view the report.");
+        alert("This examination is already completed.");
         userAnswers = data.user_answers || [];
         showFinalResultOnly(); 
         return;
@@ -198,10 +201,10 @@ function showFinalResultOnly() {
 
     document.getElementById('score-val').innerHTML = `
         <div style="display: flex; justify-content: center; margin-bottom: 40px;">
-            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(11, 74, 143, 0.3); text-align: center; min-width: 320px;">
-                <div style="font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">Final Score Report</div>
+            <div style="background: linear-gradient(135deg, #0b4a8f 0%, #1e3a5f 100%); color: white; padding: 30px 60px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); text-align: center; min-width: 320px;">
+                <div style="font-size: 1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; opacity: 0.9;">Test Summary</div>
                 <div style="font-size: 3.5rem; font-weight: 800; margin: 0; line-height: 1;">${score} <span style="font-size: 1.5rem; opacity: 0.7;">/ ${totalQuestions}</span></div>
-                <div style="margin-top: 20px; font-size: 1.4rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 8px 25px; border-radius: 50px;">
+                <div style="margin-top: 20px; font-size: 1.2rem; background: rgba(255,255,255,0.15); display: inline-block; padding: 8px 25px; border-radius: 50px;">
                     Accuracy: ${percentage}%
                 </div>
             </div>
@@ -213,8 +216,8 @@ function showFinalResultOnly() {
                 <thead>
                     <tr style="background-color: #f8f9fa;">
                         <th style="padding:15px;">Q.No</th>
-                        <th style="padding:15px; text-align:left;">Question Description</th>
-                        <th style="padding:15px;">Your Response</th>
+                        <th style="padding:15px; text-align:left;">Question</th>
+                        <th style="padding:15px;">Your Answer</th>
                         <th style="padding:15px;">Correct Answer</th>
                     </tr>
                 </thead>
@@ -225,7 +228,6 @@ function showFinalResultOnly() {
     if (window.MathJax) setTimeout(() => { MathJax.typesetPromise([document.getElementById('review-panel')]); }, 200);
 }
 
-// FINAL SUBMISSION (SAVES THE LOCK FLAG)
 window.finalSubmission = async function() {
     const sub = document.getElementById('subject-select').value;
     const { error } = await supabaseClient.from('student_progress').upsert({ 
@@ -239,7 +241,7 @@ window.finalSubmission = async function() {
     if (!error) {
         showFinalResultOnly();
     } else {
-        alert("Submission failed. Check your internet connection.");
+        alert("Submission failed. Error: " + error.message);
     }
 };
 
