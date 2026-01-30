@@ -135,65 +135,81 @@ window.startExam = async function() {
 };
 
 window.loadQuestion = function() {
-    // 1. Get current question data and saved answer
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
-    const savedAnswer = userAnswers[currentIndex] || "";
+    
+    // 1. Get current stored answer for this index
+    const currentSelection = userAnswers[currentIndex] || "";
 
-    // 2. Clear and rebuild the question area
+    // 2. Build the HTML structure
     area.innerHTML = `
     <div style="padding: 20px 50px;">
         <div style="margin-bottom: 20px;">
-            <span class="q-type-label">
-                Question ${currentIndex + 1} (${qData.type === 'mcq' ? 'MCQ' : 'Integer Type'})
+            <span style="background: #0b4a8f; color: white; padding: 6px 18px; border-radius: 4px; font-weight: 500; font-size: 0.9rem;">
+                Question ${currentIndex + 1}
             </span>
         </div>
 
-        <div style="font-size: 1.2rem; margin-bottom: 25px; line-height: 1.6;">
+        <div style="font-size: 1.25rem; margin-bottom: 30px; line-height: 1.6; color: #222;">
             ${qData.q}
         </div>
 
         <div id="options-container" style="display: flex; flex-direction: column; gap: 12px;">
             ${qData.type === 'mcq' ? 
                 qData.options.map((opt, i) => {
-                    // Critical: Use strict string comparison for LaTeX stability
-                    const isSelected = String(opt).trim() === String(savedAnswer).trim();
+                    // Strict comparison for LaTeX and special characters
+                    const isSelected = String(opt).trim() === String(currentSelection).trim();
                     
                     return `
-                    <label style="padding: 15px; border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; 
-                           background: ${isSelected ? '#f0f7ff' : '#fff'}; border-radius: 8px; 
-                           cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 10px;">
+                    <label style="
+                        display: flex; 
+                        align-items: center; 
+                        padding: 15px 20px; 
+                        border: 1.5px solid ${isSelected ? '#0b4a8f' : '#ddd'}; 
+                        background: ${isSelected ? '#f0f7ff' : '#fff'}; 
+                        border-radius: 8px; 
+                        cursor: pointer; 
+                        transition: all 0.2s ease;
+                    ">
                         <input type="radio" 
                                name="q-group-${currentIndex}" 
                                value="${opt}" 
                                onchange="saveAnswer(this.value)" 
                                ${isSelected ? 'checked' : ''}
-                               style="width: 18px; height: 18px; cursor: pointer;">
-                        <span style="flex: 1;">${opt}</span>
+                               style="
+                                   margin-right: 20px; 
+                                   width: 18px; 
+                                   height: 18px; 
+                                   cursor: pointer; 
+                                   flex-shrink: 0;
+                               "> 
+                        
+                        <span style="font-size: 1.1rem; color: #333; line-height: 1.4;">
+                            ${opt}
+                        </span>
                     </label>`;
                 }).join('') 
                 : 
-                `<div>
-                    <span style="font-weight: bold; margin-right: 10px;">Answer:</span>
-                    <input type="number" 
-                           step="any" 
-                           class="num-input" 
-                           placeholder="Enter value"
-                           value="${savedAnswer}" 
-                           oninput="saveAnswer(this.value)"
-                           style="padding: 10px; border: 2px solid var(--primary); border-radius: 4px;">
+                `<div style="display: flex; align-items: center; gap: 15px;">
+                    <span style="font-weight: 600; color: #555;">Your Answer:</span>
+                    <input type="text" 
+                           placeholder="Type your answer here..."
+                           style="padding: 12px 15px; border-radius: 6px; border: 2px solid #0b4a8f; width: 200px; font-size: 1rem;" 
+                           oninput="saveAnswer(this.value)" 
+                           value="${currentSelection}">
                 </div>`
             }
         </div>
     </div>`;
 
-    // 3. Update Sidebar and Stats
+    // 3. Update Sidebar Palette and Stats
     updateStats(); 
     updatePaletteUI();
-
-    // 4. Force MathJax to re-render formulas if present
-    if (window.MathJax && typeof MathJax.typesetPromise === 'function') {
-        MathJax.typesetPromise([area]).catch((err) => console.log('MathJax error:', err));
+    
+    // 4. Handle LaTeX Rendering (MathJax)
+    if (window.MathJax) {
+        // Typeset only the question area to maintain performance
+        MathJax.typesetPromise([area]).catch((err) => console.error("MathJax Error:", err));
     }
 };
 
