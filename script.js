@@ -170,7 +170,28 @@ window.loadQuestion = function() {
     }
 };
 
-window.saveAnswer = function(val) { userAnswers[currentIndex] = val; saveToCloud(); };
+window.saveAnswer = function(val) {
+    userAnswers[currentIndex] = val;
+    
+    // 1. Update the visual border/background of the selected option immediately
+    const labels = document.querySelectorAll('#question-area label');
+    labels.forEach(label => {
+        const input = label.querySelector('input');
+        if (input && input.value === val) {
+            label.style.border = '1px solid #0b4a8f';
+            label.style.background = '#f0f7ff';
+        } else {
+            label.style.border = '1px solid #ddd';
+            label.style.background = '#fff';
+        }
+    });
+
+    // 2. Sync with your existing palette and cloud logic
+    updateStats(); 
+    updatePaletteUI();
+    saveToCloud();
+};
+
 window.saveAndNext = function() { if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; } if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); } saveToCloud(); };
 window.prevQuestion = function() { if (currentIndex > 0) { currentIndex--; loadQuestion(); saveToCloud(); } };
 window.markForReview = function() { markedForReview[currentIndex] = true; if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); } else updatePaletteUI(); saveToCloud(); };
