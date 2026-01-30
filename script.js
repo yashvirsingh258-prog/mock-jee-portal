@@ -8,21 +8,87 @@ let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [],
 let currentUserEmail = ""; 
 
 // 3. AUTHENTICATION
+// 3. UPDATED MINIMALIST PREMIUM LOGIN SCREEN
 window.handleLogin = async function() {
     const emailInput = document.getElementById('login-email');
     const passInput = document.getElementById('login-pass');
     if (!emailInput || !passInput) return;
     const email = emailInput.value.trim();
     const pass = passInput.value.trim();
-    if (!email || !pass) { alert("Please enter both email and password."); return; }
+    if (!email || !pass) { alert("Please enter credentials."); return; }
     
+    const loginBtn = document.querySelector('.login-submit-btn');
+    if(loginBtn) loginBtn.innerText = "AUTHENTICATING..."; 
+
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-    if (error) alert("Login failed: " + error.message);
-    else if (data.user) { 
+    if (error) {
+        alert("Login failed.");
+        if(loginBtn) loginBtn.innerText = "CONTINUE";
+    } else if (data.user) { 
         currentUserEmail = data.user.email; 
-        await fetchQuestionsAndStart(); 
+        await startExam(); // Using your original startExam logic
     }
 };
+
+// INJECTING THE MINIMALIST UI WITH ALL FIELDS
+document.addEventListener('DOMContentLoaded', () => {
+    const loginScreen = document.getElementById('login-screen');
+    if (loginScreen) {
+        document.body.style.background = "#ffffff";
+        loginScreen.style.cssText = `
+            display: flex; align-items: center; justify-content: center;
+            height: 100vh; width: 100vw; font-family: 'Inter', sans-serif;
+        `;
+
+        loginScreen.innerHTML = `
+            <div style="width: 100%; max-width: 400px; padding: 40px; text-align: left;">
+                <h2 style="font-size: 36px; font-weight: 800; color: #0b4a8f; margin-bottom: 8px; letter-spacing: -1.5px;">Portal.</h2>
+                <p style="color: #64748b; font-size: 14px; margin-bottom: 45px; font-weight: 500;">Please verify your credentials.</p>
+
+                <div style="margin-bottom: 25px;">
+                    <input type="email" id="login-email" placeholder="Student Email" 
+                        style="width: 100%; padding: 12px 0; border: none; border-bottom: 1.5px solid #e2e8f0; font-size: 16px; outline: none; transition: 0.3s; color: #1e293b;"
+                        onfocus="this.style.borderBottomColor='#0b4a8f'" onblur="this.style.borderBottomColor='#e2e8f0'">
+                </div>
+
+                <div style="margin-bottom: 35px;">
+                    <input type="password" id="login-pass" placeholder="Password" 
+                        style="width: 100%; padding: 12px 0; border: none; border-bottom: 1.5px solid #e2e8f0; font-size: 16px; outline: none; transition: 0.3s; color: #1e293b;"
+                        onfocus="this.style.borderBottomColor='#0b4a8f'" onblur="this.style.borderBottomColor='#e2e8f0'">
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Subject</label>
+                    <select id="subject-select" onchange="updateTestNames()"
+                        style="width: 100%; padding: 10px 0; border: none; border-bottom: 1.5px solid #e2e8f0; background: transparent; font-size: 15px; font-weight: 600; color: #1e293b; outline: none; cursor: pointer;">
+                        <option value="mathematics">Mathematics</option>
+                        <option value="physics">Physics</option>
+                        <option value="chemistry">Chemistry</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: 45px;">
+                    <label style="display: block; font-size: 11px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px;">Test Name</label>
+                    <select id="test-name-select"
+                        style="width: 100%; padding: 10px 0; border: none; border-bottom: 1.5px solid #e2e8f0; background: transparent; font-size: 15px; font-weight: 600; color: #1e293b; outline: none; cursor: pointer;">
+                        </select>
+                </div>
+
+                <button class="login-submit-btn" onclick="handleLogin()" 
+                    style="width: 100%; background: #0b4a8f; color: white; border: none; padding: 18px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 2px; transition: 0.3s; box-shadow: 0 10px 20px rgba(11, 74, 143, 0.15);"
+                    onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 15px 30px rgba(11, 74, 143, 0.25)';" 
+                    onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 10px 20px rgba(11, 74, 143, 0.15)';" >
+                    ENTER PORTAL
+                </button>
+                
+                <div style="margin-top: 50px; text-align: center;">
+                    <span style="font-size: 10px; color: #cbd5e1; font-weight: 700; letter-spacing: 2px; border: 1px solid #f1f5f9; padding: 4px 12px; border-radius: 20px;">SYSTEM SECURE</span>
+                </div>
+            </div>
+        `;
+    }
+    updateTestNames();
+});
 
 // 4. DYNAMIC DATA FETCHING
 window.updateTestNames = async function() {
