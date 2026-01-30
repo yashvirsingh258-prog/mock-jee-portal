@@ -19,7 +19,7 @@
         <div class="login-card">
             <h2>JEE Portal</h2>
             
-            <div style="margin-bottom: 20px;">
+            <div style="margin-bottom: 10px;">
                 <input type="text" id="login-email" placeholder="Student Email">
                 <input type="password" id="login-pass" placeholder="Password">
             </div>
@@ -60,7 +60,7 @@
                 <button class="btn-sec" onclick="prevQuestion()">Previous</button>
                 <button class="btn-rev" onclick="markForReview()">Mark for Review</button>
                 <button class="btn-clear" onclick="clearResponse()">Clear Response</button>
-                <button class="btn-pri" id="next-btn" style="flex: 1.5;" onclick="saveAndNext()">Save & Next</button>
+                <button class="btn-pri" id="next-btn" onclick="saveAndNext()">Save & Next</button>
             </div>
             
             <button class="btn-danger" onclick="confirmSubmit()">SUBMIT EXAMINATION</button>
@@ -78,11 +78,11 @@
             <div class="legend-section">
                 <div class="leg-row">
                     <div class="leg-item"><span class="dot-leg"></span> Not Visited</div>
-                    <div class="leg-item"><span class="dot-leg" style="background: #2d8c3c; clip-path: polygon(10% 0%, 90% 0%, 100% 30%, 100% 70%, 90% 100%, 10% 100%, 0% 70%, 0% 30%);"></span> Answered</div>
+                    <div class="leg-item"><span class="dot-leg" style="background: #198754;"></span> Answered</div>
                 </div>
                 <div class="leg-row">
-                    <div class="leg-item"><span class="dot-leg" style="border: 2px solid #d93025; background: white;"></span> Not Answered</div>
-                    <div class="leg-item"><span class="dot-leg" style="background: #8e44ad; border-radius: 50%;"></span> Review</div>
+                    <div class="leg-item"><span class="dot-leg" style="background: white; border: 1px solid #cbd5e1;"></span> Not Answered</div>
+                    <div class="leg-item"><span class="dot-leg" style="background: #6f42c1;"></span> Review</div>
                 </div>
             </div>
         </div>
