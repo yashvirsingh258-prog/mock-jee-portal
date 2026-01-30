@@ -8,7 +8,6 @@ let activeBank = [], currentIndex = 0, userAnswers = [], confirmedAnswered = [],
 let currentUserEmail = ""; 
 
 // 3. MANDATORY MATHJAX CONFIGURATION
-// This must be set BEFORE MathJax loads to tell it to look for $ symbols
 window.MathJax = {
     tex: {
         inlineMath: [['$', '$'], ['\\(', '\\)']],
@@ -20,22 +19,27 @@ window.MathJax = {
     }
 };
 
-// 4. THE SUPER-CLEANER (The most important part)
-
+// 4. THE SUPER-CLEANER
+// This converts database over-escaping (\\\\\\\\int) into standard LaTeX (\int)
 function cleanMath(str) {
     if (!str) return "";
     return str
-        .replace(/\\\\\\\\/g, '\\') // Fixes quadruple slashes from DB
+        .replace(/\\\\\\\\/g, '\\') // Fixes quadruple slashes
         .replace(/\\\\/g, '\\')     // Fixes double slashes
-        .replace(/\\n/g, '\n');     // Fixes step-by-step line breaks
+        .replace(/\\n/g, '\n');     // Fixes vertical steps
 }
 
 function refreshMath(element) {
     if (window.MathJax && window.MathJax.typesetPromise) {
-        // 200ms delay to ensure the browser has finished 'painting' the text
+        // Delay ensures the DOM has painted before MathJax scans
         setTimeout(() => {
-            window.MathJax.typesetPromise([element]).catch((err) => console.log('MathJax Error:', err));
-        }, 200);
+            window.MathJax.typesetPromise([element])
+                .then(() => {
+                    // Second pass to catch any missed symbols during fast navigation
+                    return window.MathJax.typesetPromise([element]);
+                })
+                .catch((err) => console.log('MathJax Error:', err));
+        }, 250); 
     }
 }
 
@@ -57,7 +61,7 @@ window.handleLogin = async function() {
 
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
     if (error) {
-        if(statusMsg) statusMsg.innerText = "Login failed.";
+        if(statusMsg) statusMsg.innerText = "Login failed: Invalid credentials.";
     } else { 
         currentUserEmail = data.user.email;
         await fetchQuestionsAndStart(); 
@@ -69,7 +73,7 @@ window.loadQuestion = function() {
     const qData = activeBank[currentIndex];
     const area = document.getElementById('question-area');
     
-    // Applying the Super-Cleaner to the Question and Options
+    // Applying Super-Cleaner to Question and Options
     const displayQ = cleanMath(qData.q);
     const displayOptions = qData.options.map(opt => cleanMath(opt));
 
@@ -80,12 +84,12 @@ window.loadQuestion = function() {
                     Question ${currentIndex + 1}
                 </span>
             </div>
-            <div style="font-size: 1.35rem; margin-bottom: 30px; line-height: 1.8;">${displayQ}</div>
+            <div style="font-size: 1.35rem; margin-bottom: 30px; line-height: 1.8; color: #1e293b;">${displayQ}</div>
             <div style="display: flex; flex-direction: column; gap: 12px;">
-                ${displayOptions.map((opt, i) => `
-                    <label style="padding: 16px; border: 1.5px solid ${userAnswers[currentIndex] === qData.options[i] ? '#0b4a8f' : '#e2e8f0'}; background: ${userAnswers[currentIndex] === qData.options[i] ? '#f0f7ff' : '#fff'}; border-radius: 12px; cursor: pointer;">
-                        <input type="radio" name="answer" value="${qData.options[i]}" onchange="saveAnswer(this.value); loadQuestion();" ${userAnswers[currentIndex] === qData.options[i] ? 'checked' : ''}> 
-                        <span style="margin-left: 10px; font-size: 1.1rem;">${opt}</span>
+                ${qData.options.map((opt, i) => `
+                    <label style="padding: 16px; border: 1.5px solid ${userAnswers[currentIndex] === opt ? '#0b4a8f' : '#e2e8f0'}; background: ${userAnswers[currentIndex] === opt ? '#f0f7ff' : '#fff'}; border-radius: 12px; cursor: pointer; transition: all 0.2s;">
+                        <input type="radio" name="answer" value="${opt}" onchange="saveAnswer(this.value); loadQuestion();" ${userAnswers[currentIndex] === opt ? 'checked' : ''}> 
+                        <span style="margin-left: 10px; font-size: 1.1rem;">${displayOptions[i]}</span>
                     </label>
                 `).join('')}
             </div>
@@ -103,13 +107,13 @@ window.openDetailedSolution = function(idx) {
     
     solTab.document.write(`
         <html><head>
-        <title>Solution</title>
+        <title>Solution - Question ${idx+1}</title>
         <script>
             window.MathJax = { tex: { inlineMath: [['$', '$']] } };
         </script>
         <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
         <style>
-            body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; line-height: 1.6; }
+            body { font-family: 'Inter', sans-serif; padding: 50px; background: #f8fafc; line-height: 1.6; color: #1e293b; }
             .card { background: white; max-width: 850px; margin: auto; padding: 40px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
             .sol-box { 
                 white-space: pre-wrap; 
@@ -118,15 +122,16 @@ window.openDetailedSolution = function(idx) {
                 border-radius: 12px; 
                 border-left: 6px solid #0b4a8f; 
                 margin: 25px 0; 
-                font-size: 1.1rem;
+                font-size: 1.15rem;
+                line-height: 2;
             }
         </style></head>
         <body class="tex2jax_process">
             <div class="card">
                 <h2 style="color: #0b4a8f;">Step-by-Step Solution</h2>
-                <div style="font-size: 1.3rem;">${cleanMath(q.q)}</div>
+                <div style="font-size: 1.3rem; margin-bottom: 20px;">${cleanMath(q.q)}</div>
                 <div class="sol-box">${cleanMath(q.solution)}</div>
-                <div style="font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 10px 20px; border-radius: 8px; display: inline-block;">
+                <div style="font-weight: 800; color: #16a34a; background: #f0fdf4; padding: 15px 25px; border-radius: 10px; display: inline-block;">
                     Correct Answer: ${cleanMath(q.correct)}
                 </div>
             </div>
@@ -135,10 +140,12 @@ window.openDetailedSolution = function(idx) {
     solTab.document.close();
 };
 
-// 8. DATA FLOW (Preserved)
+// 8. DATA FLOW
 async function fetchQuestionsAndStart() {
     const sub = document.getElementById('subject-select').value;
     const testName = document.getElementById('test-name-select').value;
+    document.getElementById('display-subject').innerText = sub.toUpperCase();
+
     const { data } = await supabaseClient.from('questions_table')
         .select('question_data').eq('subject', sub).eq('test_name', testName).maybeSingle();
 
@@ -148,7 +155,7 @@ async function fetchQuestionsAndStart() {
         confirmedAnswered = new Array(activeBank.length).fill(false);
         markedForReview = new Array(activeBank.length).fill(false);
         
-        document.getElementById('auth-container').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'none';
         document.getElementById('exam-header').style.display = 'flex';
         document.getElementById('quiz-container').style.display = 'flex';
         
@@ -158,6 +165,18 @@ async function fetchQuestionsAndStart() {
     }
 }
 
+// 9. HELPERS FOR TEST OPTIONS
+window.updateTestNames = async function() {
+    const sub = document.getElementById('subject-select').value;
+    const { data } = await supabaseClient.from('questions_table').select('test_name').eq('subject', sub);
+    const select = document.getElementById('test-name-select');
+    select.innerHTML = data && data.length ? data.map(d => `<option value="${d.test_name}">${d.test_name}</option>`).join('') : '<option>No tests found</option>';
+};
+
+// Initial call to load tests on page load
+window.onload = () => { updateTestNames(); };
+
+// 10. NAVIGATION & PROGRESS
 window.saveAnswer = (val) => { userAnswers[currentIndex] = val; saveToCloud(); };
 window.saveAndNext = () => { if (userAnswers[currentIndex] !== "") { confirmedAnswered[currentIndex] = true; markedForReview[currentIndex] = false; } if (currentIndex < activeBank.length - 1) { currentIndex++; loadQuestion(); } saveToCloud(); };
 window.prevQuestion = () => { if (currentIndex > 0) { currentIndex--; loadQuestion(); saveToCloud(); } };
@@ -196,8 +215,9 @@ function showFinalResultOnly() {
     document.getElementById('quiz-container').style.display = 'none';
     document.getElementById('exam-header').style.display = 'none';
     res.innerHTML = `<div class="tex2jax_process" style="padding:100px; text-align:center;">
-        <h2 style="font-size: 2rem; color: #0b4a8f; margin-bottom: 20px;">Examination Complete</h2>
-        <button onclick="openDetailedSolution(0)" style="background: #0b4a8f; color: white; border: none; padding: 15px 40px; border-radius: 8px; cursor: pointer; font-weight: 700;">VIEW SOLUTIONS</button>
+        <h2 style="font-size: 2.5rem; color: #0b4a8f; margin-bottom: 20px;">Examination Complete</h2>
+        <p style="color: #64748b; font-size: 1.2rem; margin-bottom: 40px;">Your responses have been recorded successfully.</p>
+        <button onclick="openDetailedSolution(0)" style="background: #0b4a8f; color: white; border: none; padding: 18px 45px; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 1.1rem;">VIEW SOLUTIONS</button>
     </div>`;
     refreshMath(res);
 }
